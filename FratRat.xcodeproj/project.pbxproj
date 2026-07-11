@@ -6,23 +6,97 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXFileReference section */
-		F5718AAE2FC4914C00651802 /* FratRat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FratRat.app; sourceTree = BUILT_PRODUCTS_DIR; };
-/* End PBXFileReference section */
+/* Begin PBXBuildFile section */
+		F546A95B2FCE3BA900736EE5 /* AlertModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546A95A2FCE3BA600736EE5 /* AlertModel.swift */; };
+		F546A9602FDD837E00736EE5 /* CreateAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546A95F2FDD837E00736EE5 /* CreateAccountView.swift */; };
+		F546A9622FDD838E00736EE5 /* EduVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546A9612FDD838E00736EE5 /* EduVerificationView.swift */; };
+		F546A9642FDD875B00736EE5 /* ChatInvite.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546A9632FDD875B00736EE5 /* ChatInvite.swift */; };
+		F546A9662FDD879600736EE5 /* InviteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546A9652FDD879600736EE5 /* InviteView.swift */; };
+		F546A9682FDD87AB00736EE5 /* JoinChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546A9672FDD87AB00736EE5 /* JoinChatView.swift */; };
+		F546A96B2FDDB4A500736EE5 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546A96A2FDDB4A500736EE5 /* ProfileSetupView.swift */; };
+		F56786F22FF1AD2A003EA3E0 /* Haptic.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786F12FF1AD29003EA3E0 /* Haptic.swift */; };
+		F56786F42FFB1AC0003EA3E0 /* LogCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786F32FFB1AC0003EA3E0 /* LogCapture.swift */; };
+		F5718AB22FC4914C00651802 /* FratRatApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718AB12FC4914C00651802 /* FratRatApp.swift */; };
+		F5718AC22FC492F000651802 /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718AC12FC492F000651802 /* LandingView.swift */; };
+		F5718ACE2FC4940400651802 /* MeshManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718ACD2FC493FE00651802 /* MeshManager.swift */; };
+		F5718AD72FC4990F00651802 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718AC62FC4936100651802 /* Color.swift */; };
+		F5718ADB2FC4A08C00651802 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F5718ADA2FC4A08C00651802 /* Security.framework */; };
+		F5718ADD2FC4A09800651802 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F5718ADC2FC4A09800651802 /* SystemConfiguration.framework */; };
+		F5718ADF2FC4A09E00651802 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = F5718ADE2FC4A09E00651802 /* libresolv.tbd */; };
+		F5718AF02FC4A66200651802 /* libghost_ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F5718AEF2FC4A66200651802 /* libghost_ios.a */; };
+		F5718AF22FC4A81D00651802 /* ghost_ios.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718AF12FC4A81D00651802 /* ghost_ios.swift */; };
+		F5718B012FC67DD500651802 /* MatchesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718B002FC67DD200651802 /* MatchesView.swift */; };
+		F5718B062FC7B7FD00651802 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718B052FC7B7FA00651802 /* MainTabView.swift */; };
+		F5718B092FC7C03E00651802 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718B082FC7C03C00651802 /* ChatView.swift */; };
+		F5718B0C2FC7C45400651802 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718B0B2FC7C45400651802 /* ProfileView.swift */; };
+		F5718B0F2FC7C48A00651802 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718B0E2FC7C48A00651802 /* SettingsView.swift */; };
+		F5718B112FC7C60B00651802 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718B102FC7C4E400651802 /* UserProfile.swift */; };
+		F5718B142FC9170700651802 /* DiscoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718B132FC9170300651802 /* DiscoverView.swift */; };
+		F5718B172FC91FC300651802 /* PartyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718B162FC91FBF00651802 /* PartyView.swift */; };
+		F5ABB0CF2FE7649B009DB4F0 /* RelaySwitcherSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5ABB0CE2FE7649B009DB4F0 /* RelaySwitcherSheet.swift */; };
+		F5ABB0D12FEF37DF009DB4F0 /* InviteByNameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5ABB0D02FEF37DF009DB4F0 /* InviteByNameView.swift */; };
+		F5ABB0D32FEF3822009DB4F0 /* PendingRequestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5ABB0D22FEF3822009DB4F0 /* PendingRequestsView.swift */; };
+		F5F72F612FE16F32002BF3A3 /* PeerPhotoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F72F602FE16F32002BF3A3 /* PeerPhotoView.swift */; };
+		F5F72F652FE17225002BF3A3 /* MeshImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F72F5F2FE16F1A002BF3A3 /* MeshImage.swift */; };
+		F5F72FC82FE73317002BF3A3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F5F72FC72FE73317002BF3A3 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
 
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		F5718AB02FC4914C00651802 /* FratRat */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = FratRat;
-			sourceTree = "<group>";
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
+/* Begin PBXFileReference section */
+		F546A95A2FCE3BA600736EE5 /* AlertModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertModel.swift; sourceTree = "<group>"; };
+		F546A95F2FDD837E00736EE5 /* CreateAccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateAccountView.swift; sourceTree = "<group>"; };
+		F546A9612FDD838E00736EE5 /* EduVerificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EduVerificationView.swift; sourceTree = "<group>"; };
+		F546A9632FDD875B00736EE5 /* ChatInvite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatInvite.swift; sourceTree = "<group>"; };
+		F546A9652FDD879600736EE5 /* InviteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteView.swift; sourceTree = "<group>"; };
+		F546A9672FDD87AB00736EE5 /* JoinChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinChatView.swift; sourceTree = "<group>"; };
+		F546A9692FDD8D4A00736EE5 /* FratRat.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FratRat.entitlements; sourceTree = "<group>"; };
+		F546A96A2FDDB4A500736EE5 /* ProfileSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSetupView.swift; sourceTree = "<group>"; };
+		F56786F12FF1AD29003EA3E0 /* Haptic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptic.swift; sourceTree = "<group>"; };
+		F56786F32FFB1AC0003EA3E0 /* LogCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogCapture.swift; sourceTree = "<group>"; };
+		F5718AAE2FC4914C00651802 /* FratRat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FratRat.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F5718AB12FC4914C00651802 /* FratRatApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FratRatApp.swift; sourceTree = "<group>"; };
+		F5718AC12FC492F000651802 /* LandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandingView.swift; sourceTree = "<group>"; };
+		F5718AC62FC4936100651802 /* Color.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Color.swift; sourceTree = "<group>"; };
+		F5718ACD2FC493FE00651802 /* MeshManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshManager.swift; sourceTree = "<group>"; };
+		F5718ADA2FC4A08C00651802 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.4.sdk/System/Library/Frameworks/Security.framework; sourceTree = DEVELOPER_DIR; };
+		F5718ADC2FC4A09800651802 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.4.sdk/System/Library/Frameworks/SystemConfiguration.framework; sourceTree = DEVELOPER_DIR; };
+		F5718ADE2FC4A09E00651802 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.4.sdk/usr/lib/libresolv.tbd; sourceTree = DEVELOPER_DIR; };
+		F5718AE02FC4A0B700651802 /* FratRatApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FratRatApp.swift; sourceTree = "<group>"; };
+		F5718AE22FC4A0B700651802 /* MeshManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshManager.swift; sourceTree = "<group>"; };
+		F5718AE42FC4A0B700651802 /* RelayInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayInfo.swift; sourceTree = "<group>"; };
+		F5718AE62FC4A0B700651802 /* Color.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Color.swift; sourceTree = "<group>"; };
+		F5718AE82FC4A0B700651802 /* LandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandingView.swift; sourceTree = "<group>"; };
+		F5718AEB2FC4A0B700651802 /* FratRat.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = FratRat.xcodeproj; sourceTree = "<group>"; };
+		F5718AEF2FC4A66200651802 /* libghost_ios.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libghost_ios.a; path = libs/libghost_ios.a; sourceTree = "<group>"; };
+		F5718AF12FC4A81D00651802 /* ghost_ios.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ghost_ios.swift; path = Generated/ghost_ios/ghost_ios.swift; sourceTree = "<group>"; };
+		F5718AF62FC4A8C600651802 /* FratRat-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "FratRat-Bridging-Header.h"; sourceTree = "<group>"; };
+		F5718AF72FC4ABF900651802 /* ghost_ios.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ghost_ios.swift; sourceTree = "<group>"; };
+		F5718AF82FC4ABF900651802 /* ghost_iosFFI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ghost_iosFFI.h; sourceTree = "<group>"; };
+		F5718AF92FC4ABF900651802 /* ghost_iosFFI.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = ghost_iosFFI.modulemap; sourceTree = "<group>"; };
+		F5718B002FC67DD200651802 /* MatchesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchesView.swift; sourceTree = "<group>"; };
+		F5718B052FC7B7FA00651802 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		F5718B082FC7C03C00651802 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		F5718B0B2FC7C45400651802 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		F5718B0E2FC7C48A00651802 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		F5718B102FC7C4E400651802 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		F5718B132FC9170300651802 /* DiscoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverView.swift; sourceTree = "<group>"; };
+		F5718B162FC91FBF00651802 /* PartyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartyView.swift; sourceTree = "<group>"; };
+		F5ABB0CE2FE7649B009DB4F0 /* RelaySwitcherSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelaySwitcherSheet.swift; sourceTree = "<group>"; };
+		F5ABB0D02FEF37DF009DB4F0 /* InviteByNameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteByNameView.swift; sourceTree = "<group>"; };
+		F5ABB0D22FEF3822009DB4F0 /* PendingRequestsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingRequestsView.swift; sourceTree = "<group>"; };
+		F5F72F5F2FE16F1A002BF3A3 /* MeshImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshImage.swift; sourceTree = "<group>"; };
+		F5F72F602FE16F32002BF3A3 /* PeerPhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerPhotoView.swift; sourceTree = "<group>"; };
+		F5F72FC72FE73317002BF3A3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		F5718AAB2FC4914C00651802 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F5718AF02FC4A66200651802 /* libghost_ios.a in Frameworks */,
+				F5718ADF2FC4A09E00651802 /* libresolv.tbd in Frameworks */,
+				F5718ADD2FC4A09800651802 /* SystemConfiguration.framework in Frameworks */,
+				F5718ADB2FC4A08C00651802 /* Security.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -32,8 +106,19 @@
 		F5718AA52FC4914C00651802 = {
 			isa = PBXGroup;
 			children = (
-				F5718AB02FC4914C00651802 /* FratRat */,
+				F5F72FC72FE73317002BF3A3 /* Assets.xcassets */,
+				F5F72F5E2FE16F13002BF3A3 /* Components */,
+				F546A9692FDD8D4A00736EE5 /* FratRat.entitlements */,
+				F5718AF12FC4A81D00651802 /* ghost_ios.swift */,
+				F5718AD42FC4945300651802 /* Models */,
+				F5718AD32FC4944E00651802 /* Mesh */,
+				F5718AD12FC4943B00651802 /* Views */,
+				F5718AD02FC4942F00651802 /* Theme */,
+				F5718ACF2FC4942400651802 /* App */,
+				F5718AD92FC4A08C00651802 /* Frameworks */,
 				F5718AAF2FC4914C00651802 /* Products */,
+				F5718AF62FC4A8C600651802 /* FratRat-Bridging-Header.h */,
+				F5718AFB2FC4ABF900651802 /* Generated */,
 			);
 			sourceTree = "<group>";
 		};
@@ -45,6 +130,234 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		F5718ACF2FC4942400651802 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				F56786F32FFB1AC0003EA3E0 /* LogCapture.swift */,
+				F56786F12FF1AD29003EA3E0 /* Haptic.swift */,
+				F5718AB12FC4914C00651802 /* FratRatApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		F5718AD02FC4942F00651802 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				F5718AC62FC4936100651802 /* Color.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		F5718AD12FC4943B00651802 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				F5718B152FC91FB900651802 /* Party */,
+				F5718B122FC916FE00651802 /* Discover */,
+				F5718B0D2FC7C48300651802 /* Settings */,
+				F5718B0A2FC7C44E00651802 /* Profile */,
+				F5718B072FC7C03600651802 /* Chat */,
+				F5718B042FC7B7EA00651802 /* MainTabView */,
+				F5718AFD2FC67D4F00651802 /* Matches */,
+				F5718AD22FC4944200651802 /* Landing */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		F5718AD22FC4944200651802 /* Landing */ = {
+			isa = PBXGroup;
+			children = (
+				F546A96A2FDDB4A500736EE5 /* ProfileSetupView.swift */,
+				F546A9612FDD838E00736EE5 /* EduVerificationView.swift */,
+				F546A95F2FDD837E00736EE5 /* CreateAccountView.swift */,
+				F5718AC12FC492F000651802 /* LandingView.swift */,
+			);
+			path = Landing;
+			sourceTree = "<group>";
+		};
+		F5718AD32FC4944E00651802 /* Mesh */ = {
+			isa = PBXGroup;
+			children = (
+				F5718ACD2FC493FE00651802 /* MeshManager.swift */,
+			);
+			path = Mesh;
+			sourceTree = "<group>";
+		};
+		F5718AD42FC4945300651802 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				F546A9632FDD875B00736EE5 /* ChatInvite.swift */,
+				F546A95A2FCE3BA600736EE5 /* AlertModel.swift */,
+				F5718B102FC7C4E400651802 /* UserProfile.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		F5718AD92FC4A08C00651802 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				F5718AEF2FC4A66200651802 /* libghost_ios.a */,
+				F5718AEC2FC4A0B700651802 /* FratRat */,
+				F5718ADE2FC4A09E00651802 /* libresolv.tbd */,
+				F5718ADC2FC4A09800651802 /* SystemConfiguration.framework */,
+				F5718ADA2FC4A08C00651802 /* Security.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		F5718AE12FC4A0B700651802 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				F5718AE02FC4A0B700651802 /* FratRatApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		F5718AE32FC4A0B700651802 /* Mesh */ = {
+			isa = PBXGroup;
+			children = (
+				F5718AE22FC4A0B700651802 /* MeshManager.swift */,
+			);
+			path = Mesh;
+			sourceTree = "<group>";
+		};
+		F5718AE52FC4A0B700651802 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				F5718AE42FC4A0B700651802 /* RelayInfo.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		F5718AE72FC4A0B700651802 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				F5718AE62FC4A0B700651802 /* Color.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		F5718AE92FC4A0B700651802 /* Landing */ = {
+			isa = PBXGroup;
+			children = (
+				F5718AE82FC4A0B700651802 /* LandingView.swift */,
+			);
+			path = Landing;
+			sourceTree = "<group>";
+		};
+		F5718AEA2FC4A0B700651802 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				F5718AE92FC4A0B700651802 /* Landing */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		F5718AEC2FC4A0B700651802 /* FratRat */ = {
+			isa = PBXGroup;
+			children = (
+				F5718AE12FC4A0B700651802 /* App */,
+				F5718AE32FC4A0B700651802 /* Mesh */,
+				F5718AE52FC4A0B700651802 /* Models */,
+				F5718AE72FC4A0B700651802 /* Theme */,
+				F5718AEA2FC4A0B700651802 /* Views */,
+				F5718AEB2FC4A0B700651802 /* FratRat.xcodeproj */,
+			);
+			name = FratRat;
+			sourceTree = "<group>";
+		};
+		F5718AED2FC4A0B700651802 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		F5718AFA2FC4ABF900651802 /* ghost_ios */ = {
+			isa = PBXGroup;
+			children = (
+				F5718AF72FC4ABF900651802 /* ghost_ios.swift */,
+				F5718AF82FC4ABF900651802 /* ghost_iosFFI.h */,
+				F5718AF92FC4ABF900651802 /* ghost_iosFFI.modulemap */,
+			);
+			path = ghost_ios;
+			sourceTree = "<group>";
+		};
+		F5718AFB2FC4ABF900651802 /* Generated */ = {
+			isa = PBXGroup;
+			children = (
+				F5718AFA2FC4ABF900651802 /* ghost_ios */,
+			);
+			path = Generated;
+			sourceTree = "<group>";
+		};
+		F5718AFD2FC67D4F00651802 /* Matches */ = {
+			isa = PBXGroup;
+			children = (
+				F5718B002FC67DD200651802 /* MatchesView.swift */,
+			);
+			path = Matches;
+			sourceTree = "<group>";
+		};
+		F5718B042FC7B7EA00651802 /* MainTabView */ = {
+			isa = PBXGroup;
+			children = (
+				F5718B052FC7B7FA00651802 /* MainTabView.swift */,
+			);
+			path = MainTabView;
+			sourceTree = "<group>";
+		};
+		F5718B072FC7C03600651802 /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+				F5ABB0D22FEF3822009DB4F0 /* PendingRequestsView.swift */,
+				F5ABB0D02FEF37DF009DB4F0 /* InviteByNameView.swift */,
+				F546A9672FDD87AB00736EE5 /* JoinChatView.swift */,
+				F546A9652FDD879600736EE5 /* InviteView.swift */,
+				F5718B082FC7C03C00651802 /* ChatView.swift */,
+			);
+			path = Chat;
+			sourceTree = "<group>";
+		};
+		F5718B0A2FC7C44E00651802 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				F5718B0B2FC7C45400651802 /* ProfileView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		F5718B0D2FC7C48300651802 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				F5ABB0CE2FE7649B009DB4F0 /* RelaySwitcherSheet.swift */,
+				F5718B0E2FC7C48A00651802 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		F5718B122FC916FE00651802 /* Discover */ = {
+			isa = PBXGroup;
+			children = (
+				F5F72F602FE16F32002BF3A3 /* PeerPhotoView.swift */,
+				F5F72F5F2FE16F1A002BF3A3 /* MeshImage.swift */,
+				F5718B132FC9170300651802 /* DiscoverView.swift */,
+			);
+			path = Discover;
+			sourceTree = "<group>";
+		};
+		F5718B152FC91FB900651802 /* Party */ = {
+			isa = PBXGroup;
+			children = (
+				F5718B162FC91FBF00651802 /* PartyView.swift */,
+			);
+			path = Party;
+			sourceTree = "<group>";
+		};
+		F5F72F5E2FE16F13002BF3A3 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -52,6 +365,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = F5718ABB2FC4914E00651802 /* Build configuration list for PBXNativeTarget "FratRat" */;
 			buildPhases = (
+				F5718AD82FC49D5400651802 /* ShellScript */,
 				F5718AAA2FC4914C00651802 /* Sources */,
 				F5718AAB2FC4914C00651802 /* Frameworks */,
 				F5718AAC2FC4914C00651802 /* Resources */,
@@ -59,9 +373,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				F5718AB02FC4914C00651802 /* FratRat */,
 			);
 			name = FratRat;
 			packageProductDependencies = (
@@ -82,6 +393,7 @@
 				TargetAttributes = {
 					F5718AAD2FC4914C00651802 = {
 						CreatedOnToolsVersion = 26.4.1;
+						LastSwiftMigration = 2640;
 					};
 				};
 			};
@@ -97,6 +409,12 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F5718AAF2FC4914C00651802 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = F5718AED2FC4A0B700651802 /* Products */;
+					ProjectRef = F5718AEB2FC4A0B700651802 /* FratRat.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				F5718AAD2FC4914C00651802 /* FratRat */,
@@ -109,16 +427,64 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F5F72FC82FE73317002BF3A3 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		F5718AD82FC49D5400651802 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nexport PATH=\"$HOME/.cargo/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"\n\nREPO_DIR=\"${SRCROOT}/../zrp\"\n\nif [ ! -d \"$REPO_DIR/.git\" ]; then\n    git clone https://github.com/BradyBangasser/zkrp.git \"$REPO_DIR\"\nelse\n    git -C \"$REPO_DIR\" pull origin main\nfi\n\nif [ \"$PLATFORM_NAME\" = \"iphonesimulator\" ]; then\n    TARGET=\"aarch64-apple-ios-sim\"\nelse\n    TARGET=\"aarch64-apple-ios\"\nfi\n\nrustup target add \"$TARGET\"\n\ncd \"$REPO_DIR\"\ncargo build -p ghost-ios --target \"$TARGET\" --release\n\nmkdir -p \"${SRCROOT}/libs\"\ncp \"target/$TARGET/release/libghost_ios.a\" \"${SRCROOT}/libs/libghost_ios.a\"\n\ncargo install uniffi --version 0.31.1 --features cli --locked 2>/dev/null || true\n~/.cargo/bin/uniffi-bindgen generate \\\n    \"target/$TARGET/release/libghost_ios.a\" \\\n    --language swift \\\n    --out-dir \"${SRCROOT}/Generated/ghost_ios\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		F5718AAA2FC4914C00651802 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F5F72F652FE17225002BF3A3 /* MeshImage.swift in Sources */,
+				F546A9622FDD838E00736EE5 /* EduVerificationView.swift in Sources */,
+				F5718B112FC7C60B00651802 /* UserProfile.swift in Sources */,
+				F546A9662FDD879600736EE5 /* InviteView.swift in Sources */,
+				F5718AF22FC4A81D00651802 /* ghost_ios.swift in Sources */,
+				F5718B0C2FC7C45400651802 /* ProfileView.swift in Sources */,
+				F5718B012FC67DD500651802 /* MatchesView.swift in Sources */,
+				F5ABB0D12FEF37DF009DB4F0 /* InviteByNameView.swift in Sources */,
+				F5718AD72FC4990F00651802 /* Color.swift in Sources */,
+				F5718ACE2FC4940400651802 /* MeshManager.swift in Sources */,
+				F546A9682FDD87AB00736EE5 /* JoinChatView.swift in Sources */,
+				F5718B0F2FC7C48A00651802 /* SettingsView.swift in Sources */,
+				F56786F22FF1AD2A003EA3E0 /* Haptic.swift in Sources */,
+				F5718B092FC7C03E00651802 /* ChatView.swift in Sources */,
+				F5718B172FC91FC300651802 /* PartyView.swift in Sources */,
+				F546A9642FDD875B00736EE5 /* ChatInvite.swift in Sources */,
+				F5718B062FC7B7FD00651802 /* MainTabView.swift in Sources */,
+				F5718AC22FC492F000651802 /* LandingView.swift in Sources */,
+				F546A96B2FDDB4A500736EE5 /* ProfileSetupView.swift in Sources */,
+				F5ABB0CF2FE7649B009DB4F0 /* RelaySwitcherSheet.swift in Sources */,
+				F5ABB0D32FEF3822009DB4F0 /* PendingRequestsView.swift in Sources */,
+				F5718AB22FC4914C00651802 /* FratRatApp.swift in Sources */,
+				F546A95B2FCE3BA900736EE5 /* AlertModel.swift in Sources */,
+				F5F72F612FE16F32002BF3A3 /* PeerPhotoView.swift in Sources */,
+				F546A9602FDD837E00736EE5 /* CreateAccountView.swift in Sources */,
+				F56786F42FFB1AC0003EA3E0 /* LogCapture.swift in Sources */,
+				F5718B142FC9170700651802 /* DiscoverView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -244,12 +610,32 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = FratRat.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WHN5849AD9;
 				ENABLE_APP_SANDBOX = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = YES;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/Generated/ghost_ios/**";
+				INFOPLIST_FILE = "FratRat-Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "FratRat uses your location to show nearby users, parties, and alerts.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "FratRat needs camera access to scan invite QR codes and take profile photos.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "FratRat connects to nearby devices to find parties and matches.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "FratRat uses your location to recommend nearby users, parties, and alerts.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -263,8 +649,14 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/libs",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
+				OTHER_CFLAGS = "";
+				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = dev.bangasser.FratRat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -274,6 +666,9 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Generated/ghost_ios/**";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/FratRat-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
@@ -286,12 +681,32 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = FratRat.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WHN5849AD9;
 				ENABLE_APP_SANDBOX = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = YES;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/Generated/ghost_ios/**";
+				INFOPLIST_FILE = "FratRat-Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "FratRat uses your location to show nearby users, parties, and alerts.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "FratRat needs camera access to scan invite QR codes and take profile photos.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "FratRat connects to nearby devices to find parties and matches.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "FratRat uses your location to recommend nearby users, parties, and alerts.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -305,8 +720,14 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/libs",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
+				OTHER_CFLAGS = "";
+				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = dev.bangasser.FratRat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -316,6 +737,8 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Generated/ghost_ios/**";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/FratRat-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";

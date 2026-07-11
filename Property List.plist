@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSCameraUsageDescription</key>
+	<string>FratRat uses your camera to scan invite QR codes and take pictures for user content</string>
+	<key>NSBonjourServices</key>
+	<array/>
+	<key>_p2p._tcp</key>
+	<string></string>
+	<key>_p2p._udp</key>
+	<string></string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>FratRat connects to nearby devices to find parties and matches.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Used to show nearby parties and distances.</string>
+</dict>
+</plist>
