@@ -1,0 +1,18 @@
+id: fratrat
+name: "FratRat: College Dating App (Client)"
+period: "2026"
+weight: 6
+start: "2026-01"
+tags: [sales]
+strict: true
+tech: [Swift, iOS, gRPC]
+bullets:
+  - text: "Built and shipped FratRat, a college dating app, for a paying client as a native iOS app on an encrypted P2P network."
+    tags: [sales]
+    priority: 1
+  - text: "Hosted the platform and negotiated hosting, SLA, and SLO agreements with the client, owning the uptime commitment."
+    tags: [sales]
+    priority: 1
+  - text: "Designed per-university isolated networks so students match within their own campus, with privacy-first data handling."
+    tags: [sales]
+    priority: 2
