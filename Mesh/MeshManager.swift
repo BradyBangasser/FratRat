@@ -82,17 +82,58 @@ final class MeshManager: ObservableObject {
 
     private var node:     MeshNode?
     private var identity: NodeIdentity?
-    /// The relay gRPC URL for blob and log calls. Learned from the network
-    /// directory in findRelays(); starts at the first bootstrap relay.
-    private var grpcAddr: String = ZkrpConfig.bootstrapRelays.first ?? ""
-    /// Mailbox topic → conversation id, for every topic we watch.
-    private var topicConversations: [String: String] = [:]
-    /// Re-derives conversation mailboxes as they rotate.
-    private var rotationTask: Task<Void, Never>?
-    /// First message a QR-invite joiner sends, carrying their name.
-    static let joinedPrefix = "JOINED:"
 
-    init() {}
+    /// The active mesh endpoint config. Published so Settings can reflect the
+    /// current discovery server and react when it changes.
+    @Published private(set) var config: MeshConfig
+
+    /// Bootstrap discovery gRPC endpoint. Derived from `config` so every call
+    /// site (discovery, blob upload, log upload) picks up a live re-point.
+    private var grpcAddr: String { config.grpcAddr }
+    private var cfDomain: String { config.cfDomain }
+
+    private let broadcastTopic = "ghost/broadcast/v1"
+    private let invitePrefix   = "fratrat/v1/invite/"
+
+    init(config: MeshConfig = .default) {
+        self.config = config
+        Swift.print("GRPC ADDR: " + config.grpcAddr)
+    }
+
+    /// Back-compat convenience (previews / explicit host). Prefer `init(config:)`.
+    convenience init(grpcAddr: String, cfDomain: String = MeshConfig.defaultCfDomain) {
+        self.init(config: MeshConfig(
+            grpcAddr:              grpcAddr,
+            cfDomain:              cfDomain,
+            fallbackRelayMultiaddr: MeshConfig.default.fallbackRelayMultiaddr
+        ))
+    }
+
+    // MARK: - Mesh endpoint (re)configuration
+
+    /// Point the app at a different discovery server at runtime. Persists the
+    /// override, tears down any current connection, and re-discovers on the new
+    /// endpoint. Safe to call from Settings.
+    @MainActor
+    func updateMeshEndpoint(_ raw: String) async {
+        let normalized = MeshConfig.normalized(raw)
+        guard normalized != config.grpcAddr else { return }
+        MeshConfig.saveGrpcAddr(normalized)
+        config = .default
+        Swift.print("[mesh] endpoint changed → \(config.grpcAddr)")
+        if node != nil { await disconnect() }
+        await findRelays()
+    }
+
+    /// Clear any in-app override and return to the env/compiled default.
+    @MainActor
+    func resetMeshEndpoint() async {
+        MeshConfig.resetGrpcAddr()
+        config = .default
+        Swift.print("[mesh] endpoint reset → \(config.grpcAddr)")
+        if node != nil { await disconnect() }
+        await findRelays()
+    }
 
     // MARK: - Conversations
     //
@@ -331,7 +372,17 @@ final class MeshManager: ObservableObject {
         Swift.print("[mesh] network directory: \(results.count) relays, stale=\(network?.stale ?? true)")
 
         if results.isEmpty {
-            connectionState = .failed("Can't reach any relay. Check your connection.")
+            let fallbackAddr = config.fallbackRelayMultiaddr
+            availableRelays = [
+                RelayInfoViewModel(
+                    multiaddr: fallbackAddr,
+                    peerId:    "unknown",
+                    region:    "local",
+                    load:      0,
+                    meshes:    ["fratrat-v1"]
+                )
+            ]
+            connectionState = .failed("No relays found via gRPC — using fallback")
         } else {
             availableRelays = results.map {
                 RelayInfoViewModel(

@@ -15,6 +15,13 @@
 		F546A96B2FDDB4A500736EE5 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546A96A2FDDB4A500736EE5 /* ProfileSetupView.swift */; };
 		F56786F22FF1AD2A003EA3E0 /* Haptic.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786F12FF1AD29003EA3E0 /* Haptic.swift */; };
 		F56786F42FFB1AC0003EA3E0 /* LogCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786F32FFB1AC0003EA3E0 /* LogCapture.swift */; };
+		F56786F63005A1E1003EA3E0 /* AuthController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786F53005A1E1003EA3E0 /* AuthController.swift */; };
+		F56786FD3005A559003EA3E0 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786FC3005A556003EA3E0 /* AuthService.swift */; };
+		F56786FF3005A56B003EA3E0 /* AuthConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786FE3005A56B003EA3E0 /* AuthConfig.swift */; };
+		F56787013005AC04003EA3E0 /* MeshConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56787003005AC04003EA3E0 /* MeshConfig.swift */; };
+		F56787053005AC14003EA3E0 /* MeshServerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56787043005AC14003EA3E0 /* MeshServerSheet.swift */; };
+		F56787063005AD7E003EA3E0 /* AddressCompleter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786F93005A42F003EA3E0 /* AddressCompleter.swift */; };
+		F56787073005AD85003EA3E0 /* Auth.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786F83005A404003EA3E0 /* Auth.swift */; };
 		F5718AB22FC4914C00651802 /* FratRatApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718AB12FC4914C00651802 /* FratRatApp.swift */; };
 		F5718AC22FC492F000651802 /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718AC12FC492F000651802 /* LandingView.swift */; };
 		F5718ACE2FC4940400651802 /* MeshManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718ACD2FC493FE00651802 /* MeshManager.swift */; };
@@ -48,10 +55,16 @@
 		F546A9632FDD875B00736EE5 /* ChatInvite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatInvite.swift; sourceTree = "<group>"; };
 		F546A9652FDD879600736EE5 /* InviteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteView.swift; sourceTree = "<group>"; };
 		F546A9672FDD87AB00736EE5 /* JoinChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinChatView.swift; sourceTree = "<group>"; };
-		F546A9692FDD8D4A00736EE5 /* FratRat.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FratRat.entitlements; sourceTree = "<group>"; };
 		F546A96A2FDDB4A500736EE5 /* ProfileSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSetupView.swift; sourceTree = "<group>"; };
 		F56786F12FF1AD29003EA3E0 /* Haptic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptic.swift; sourceTree = "<group>"; };
 		F56786F32FFB1AC0003EA3E0 /* LogCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogCapture.swift; sourceTree = "<group>"; };
+		F56786F53005A1E1003EA3E0 /* AuthController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthController.swift; sourceTree = "<group>"; };
+		F56786F83005A404003EA3E0 /* Auth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Auth.swift; sourceTree = "<group>"; };
+		F56786F93005A42F003EA3E0 /* AddressCompleter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressCompleter.swift; sourceTree = "<group>"; };
+		F56786FC3005A556003EA3E0 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		F56786FE3005A56B003EA3E0 /* AuthConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthConfig.swift; sourceTree = "<group>"; };
+		F56787003005AC04003EA3E0 /* MeshConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshConfig.swift; sourceTree = "<group>"; };
+		F56787043005AC14003EA3E0 /* MeshServerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshServerSheet.swift; sourceTree = "<group>"; };
 		F5718AAE2FC4914C00651802 /* FratRat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FratRat.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5718AB12FC4914C00651802 /* FratRatApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FratRatApp.swift; sourceTree = "<group>"; };
 		F5718AC12FC492F000651802 /* LandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandingView.swift; sourceTree = "<group>"; };
@@ -112,7 +125,6 @@
 				9EFEA3720A3EA6B4B4104578 /* Zkrp.xcconfig */,
 				F5F72FC72FE73317002BF3A3 /* Assets.xcassets */,
 				F5F72F5E2FE16F13002BF3A3 /* Components */,
-				F546A9692FDD8D4A00736EE5 /* FratRat.entitlements */,
 				F5718AF12FC4A81D00651802 /* ghost_ios.swift */,
 				F5718AD42FC4945300651802 /* Models */,
 				F5718AD32FC4944E00651802 /* Mesh */,
@@ -181,6 +193,10 @@
 		F5718AD32FC4944E00651802 /* Mesh */ = {
 			isa = PBXGroup;
 			children = (
+				F56787003005AC04003EA3E0 /* MeshConfig.swift */,
+				F56786FE3005A56B003EA3E0 /* AuthConfig.swift */,
+				F56786FC3005A556003EA3E0 /* AuthService.swift */,
+				F56786F53005A1E1003EA3E0 /* AuthController.swift */,
 				F5718ACD2FC493FE00651802 /* MeshManager.swift */,
 				2C279648527612C89127452B /* Enrollment.swift */,
 				1F973DECC6719FB6D330C8F4 /* ZkrpConfig.swift */,
@@ -332,6 +348,7 @@
 		F5718B0D2FC7C48300651802 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				F56787043005AC14003EA3E0 /* MeshServerSheet.swift */,
 				F5ABB0CE2FE7649B009DB4F0 /* RelaySwitcherSheet.swift */,
 				F5718B0E2FC7C48A00651802 /* SettingsView.swift */,
 			);
@@ -359,6 +376,8 @@
 		F5F72F5E2FE16F13002BF3A3 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				F56786F93005A42F003EA3E0 /* AddressCompleter.swift */,
+				F56786F83005A404003EA3E0 /* Auth.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -463,19 +482,24 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F56787073005AD85003EA3E0 /* Auth.swift in Sources */,
+				F56787063005AD7E003EA3E0 /* AddressCompleter.swift in Sources */,
 				F5F72F652FE17225002BF3A3 /* MeshImage.swift in Sources */,
 				F546A9622FDD838E00736EE5 /* EduVerificationView.swift in Sources */,
 				F5718B112FC7C60B00651802 /* UserProfile.swift in Sources */,
 				F546A9662FDD879600736EE5 /* InviteView.swift in Sources */,
+				F56787053005AC14003EA3E0 /* MeshServerSheet.swift in Sources */,
 				F5718AF22FC4A81D00651802 /* ghost_ios.swift in Sources */,
+				F56786F63005A1E1003EA3E0 /* AuthController.swift in Sources */,
 				F5718B0C2FC7C45400651802 /* ProfileView.swift in Sources */,
 				F5718B012FC67DD500651802 /* MatchesView.swift in Sources */,
 				F5ABB0D12FEF37DF009DB4F0 /* InviteByNameView.swift in Sources */,
+				F56787013005AC04003EA3E0 /* MeshConfig.swift in Sources */,
 				F5718AD72FC4990F00651802 /* Color.swift in Sources */,
 				F5718ACE2FC4940400651802 /* MeshManager.swift in Sources */,
-				002E44F36B6BE7CE99CA962B /* Enrollment.swift in Sources */,
-				EC44F1F583A7D88F7A62D7A1 /* ZkrpConfig.swift in Sources */,
+				F56786FD3005A559003EA3E0 /* AuthService.swift in Sources */,
 				F546A9682FDD87AB00736EE5 /* JoinChatView.swift in Sources */,
+				F56786FF3005A56B003EA3E0 /* AuthConfig.swift in Sources */,
 				F5718B0F2FC7C48A00651802 /* SettingsView.swift in Sources */,
 				F56786F22FF1AD2A003EA3E0 /* Haptic.swift in Sources */,
 				F5718B092FC7C03E00651802 /* ChatView.swift in Sources */,
@@ -639,6 +663,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/Generated/ghost_ios/**";
 				INFOPLIST_FILE = "FratRat-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "";
 				INFOPLIST_KEY_LSApplicationCategoryType = "FratRat uses your location to show nearby users, parties, and alerts.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "FratRat needs camera access to scan invite QR codes and take profile photos.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "FratRat connects to nearby devices to find parties and matches.";
@@ -711,6 +736,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/Generated/ghost_ios/**";
 				INFOPLIST_FILE = "FratRat-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "";
 				INFOPLIST_KEY_LSApplicationCategoryType = "FratRat uses your location to show nearby users, parties, and alerts.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "FratRat needs camera access to scan invite QR codes and take profile photos.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "FratRat connects to nearby devices to find parties and matches.";

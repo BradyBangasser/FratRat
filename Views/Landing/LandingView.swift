@@ -125,7 +125,7 @@ struct LandingView: View {
                         }
                         .disabled(isLoading)
 
-                        Text("You must be 17+ and enrolled at a college or university.")
+                        Text("You must be 18+ and enrolled at a college or university.")
                             .font(.fratBody(13))
                             .foregroundColor(.fratGray)
                             .multilineTextAlignment(.center)

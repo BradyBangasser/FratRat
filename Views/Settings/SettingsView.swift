@@ -17,6 +17,7 @@ struct SettingsView: View {
     @State private var showBlockedUsers = false
     @State private var showRelayPicker = false
     @State private var showRelaySwitcher = false
+    @State private var showMeshServer = false
     @State private var copiedKey: String? = nil
     @State private var isUploadingLogs = false
     @State private var logResult: String? = nil
@@ -182,6 +183,37 @@ struct SettingsView: View {
                                     .buttonStyle(.plain)
                                 }
                             }
+                        }
+
+                        // ── Discovery server (mesh address) ───────────────────
+                        SettingsCard {
+                            Button { showMeshServer = true } label: {
+                                HStack(spacing: 14) {
+                                    SettingsIcon(systemName: "point.3.connected.trianglepath.dotted",
+                                                 color: Color(red: 0.2, green: 0.45, blue: 0.75))
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("DISCOVERY SERVER")
+                                            .font(.fratSemi(11))
+                                            .foregroundColor(.fratGray)
+                                        Text(mesh.config.displayHost)
+                                            .font(.fratBold(15))
+                                            .foregroundColor(.fratDark)
+                                            .lineLimit(1)
+                                            .truncationMode(.middle)
+                                        Text(MeshConfig.hasOverride ? "Custom endpoint" : "Default endpoint")
+                                            .font(.fratBody(12))
+                                            .foregroundColor(.fratGray)
+                                    }
+                                    Spacer()
+                                    Text("Edit")
+                                        .font(.fratSemi(13))
+                                        .foregroundColor(.fratPink)
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(.fratGray)
+                                }
+                            }
+                            .buttonStyle(.plain)
                         }
 
                         // ── Our identity ──────────────────────────────────────
@@ -491,6 +523,10 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showRelaySwitcher) {
             RelaySwitcherSheet(isPresented: $showRelaySwitcher)
+                .environmentObject(mesh)
+        }
+        .sheet(isPresented: $showMeshServer) {
+            MeshServerSheet(isPresented: $showMeshServer)
                 .environmentObject(mesh)
         }
     }

@@ -289,7 +289,7 @@ struct PartiesView: View {
         .sheet(item: $selectedParty) { PartyDetailView(party: $0, locationManager: locationManager) }
         .sheet(item: $selectedAlert) { AlertDetailView(alert: $0) }
         .sheet(isPresented: $showPost) {
-            PostPartyView { newParty in
+            PostPartyView(userLocation: locationManager.location) { newParty in
                 Task { await mesh.postParty(newParty) }
                 withAnimation { region.center = newParty.coordinate }
             }
@@ -624,6 +624,7 @@ private struct DetailRow: View {
 
 // MARK: - Post party
 struct PostPartyView: View {
+    var userLocation: CLLocation? = nil
     let onPost: (PartyProfile) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
@@ -632,7 +633,6 @@ struct PostPartyView: View {
     @State private var selectedVibe = "Rager"
     @State private var startTime = Date()
     @State private var capacity = ""
-    @State private var searchResults: [MKMapItem] = []
     @State private var selectedLocation: MKMapItem?
 
     let vibes: [(String, String)] = [
@@ -653,35 +653,11 @@ struct PostPartyView: View {
                         }
 
                         PostField(label: "ADDRESS") {
-                            VStack(alignment: .leading, spacing: 0) {
-                                HStack {
-                                    TextField("Search address…", text: $address).font(.fratBody(15))
-                                        .onChange(of: address) { searchLocation($0) }
-                                    if selectedLocation != nil {
-                                        Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                                    }
-                                }
-                                if !searchResults.isEmpty {
-                                    Divider().padding(.top, 8)
-                                    ForEach(searchResults, id: \.self) { item in
-                                        Button {
-                                            selectedLocation = item
-                                            address = item.name ?? ""
-                                            searchResults = []
-                                        } label: {
-                                            HStack(spacing: 10) {
-                                                Image(systemName: "mappin.circle.fill").foregroundColor(.fratPink)
-                                                VStack(alignment: .leading, spacing: 2) {
-                                                    Text(item.name ?? "").font(.fratSemi(14)).foregroundColor(.fratDark)
-                                                    Text(item.placemark.title ?? "")
-                                                        .font(.fratBody(12)).foregroundColor(.fratGray).lineLimit(1)
-                                                }
-                                            }.padding(.vertical, 8)
-                                        }.buttonStyle(.plain)
-                                        if item != searchResults.last { Divider() }
-                                    }
-                                }
-                            }
+                            AddressAutocompleteField(
+                                address: $address,
+                                selectedItem: $selectedLocation,
+                                userLocation: userLocation
+                            )
                         }
 
                         PostField(label: "DETAILS (OPTIONAL)") {
@@ -743,15 +719,6 @@ struct PostPartyView: View {
         case "kickback": return Color(red: 0.3, green: 0.75, blue: 0.45)
         case "formal": return Color(red: 0.35, green: 0.45, blue: 0.85)
         default: return Color.fratGray
-        }
-    }
-
-    private func searchLocation(_ query: String) {
-        selectedLocation = nil
-        guard query.count > 2 else { searchResults = []; return }
-        let req = MKLocalSearch.Request(); req.naturalLanguageQuery = query
-        MKLocalSearch(request: req).start { response, _ in
-            searchResults = Array((response?.mapItems ?? []).prefix(4))
         }
     }
 
@@ -908,4 +875,3 @@ extension MeshManager {
     }
 }
 #endif
-
