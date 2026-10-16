@@ -2038,7 +2038,7 @@ checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
 
 [[package]]
 name = "libghost"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "aes-gcm",
  "async-trait",
@@ -5501,7 +5501,7 @@ dependencies = [
 
 [[package]]
 name = "zkcred"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ark-bls12-381",
  "ark-ec",

@@ -19,7 +19,7 @@ libp2p = { version = "0.56", features = [
   "dns",
   "gossipsub",
 ] }
-libghost = { path = "../../../zrp/libghost" }
+libghost = { path = "../../../zrp/crates/libghost" }
 uniffi = { version = "0.31.1", features = ["tokio"] }
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"

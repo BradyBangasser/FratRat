@@ -8,7 +8,7 @@
 
 // Relays to ask first, comma-separated. Any one answering is enough.
 // bootstrap.zkrp.net resolves to a healthy relay (see zkrp's
-// docs/deployment.md); a specific relay follows in case that name is down.
+// deploy/README.md); a specific relay follows in case that name is down.
 // The app then measures every relay it learns about and uses the nearest.
 ZKRP_BOOTSTRAP_RELAYS = bootstrap.zkrp.net, relay.a.central.us.infra.zkrp.net
 
