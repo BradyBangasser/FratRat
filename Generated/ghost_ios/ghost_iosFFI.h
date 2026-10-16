@@ -591,6 +591,12 @@ void uniffi_ghost_ios_fn_func_clear_all_caches(RustCallStatus *_Nonnull out_stat
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_CREDENTIAL_EXPIRES_AT
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_CREDENTIAL_EXPIRES_AT
+RustBuffer uniffi_ghost_ios_fn_func_credential_expires_at(RustCallStatus *_Nonnull out_status
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_DELETE_ALERT
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_DELETE_ALERT
 void uniffi_ghost_ios_fn_func_delete_alert(uint64_t id, RustCallStatus *_Nonnull out_status
@@ -611,6 +617,22 @@ void uniffi_ghost_ios_fn_func_delete_party(uint64_t id, RustCallStatus *_Nonnull
 RustBuffer uniffi_ghost_ios_fn_func_discover_relays(RustBuffer grpc_addr, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_ENROLL_BEGIN
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_ENROLL_BEGIN
+RustBuffer uniffi_ghost_ios_fn_func_enroll_begin(RustCallStatus *_Nonnull out_status
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_ENROLL_FINISH
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_ENROLL_FINISH
+uint64_t uniffi_ghost_ios_fn_func_enroll_finish(RustBuffer auth_addr, RustBuffer token, RustBuffer attestation, RustBuffer pinned_issuer_hex
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_ENROLL_REQUEST_LINK
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_ENROLL_REQUEST_LINK
+uint64_t uniffi_ghost_ios_fn_func_enroll_request_link(RustBuffer auth_addr, RustBuffer email
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_GENERATE_CONVERSATION_KEY
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_GENERATE_CONVERSATION_KEY
 RustBuffer uniffi_ghost_ios_fn_func_generate_conversation_key(RustCallStatus *_Nonnull out_status
@@ -620,6 +642,12 @@ RustBuffer uniffi_ghost_ios_fn_func_generate_conversation_key(RustCallStatus *_N
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_GET_PEER_LAST_SEEN
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_GET_PEER_LAST_SEEN
 uint64_t uniffi_ghost_ios_fn_func_get_peer_last_seen(RustBuffer peer_id, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_HAS_CREDENTIAL
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_HAS_CREDENTIAL
+int8_t uniffi_ghost_ios_fn_func_has_credential(RustCallStatus *_Nonnull out_status
+    
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_LOAD_ALERT
@@ -701,6 +729,11 @@ RustBuffer uniffi_ghost_ios_fn_func_load_relationship(RustBuffer peer_id, RustCa
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_LOAD_USER_PROFILE
 RustBuffer uniffi_ghost_ios_fn_func_load_user_profile(RustCallStatus *_Nonnull out_status
     
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_REFRESH_NETWORK
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_REFRESH_NETWORK
+uint64_t uniffi_ghost_ios_fn_func_refresh_network(RustBuffer bootstrap
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_SAVE_ALERT
@@ -1026,6 +1059,12 @@ uint16_t uniffi_ghost_ios_checksum_func_clear_all_caches(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_CREDENTIAL_EXPIRES_AT
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_CREDENTIAL_EXPIRES_AT
+uint16_t uniffi_ghost_ios_checksum_func_credential_expires_at(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_DELETE_ALERT
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_DELETE_ALERT
 uint16_t uniffi_ghost_ios_checksum_func_delete_alert(void
@@ -1050,6 +1089,24 @@ uint16_t uniffi_ghost_ios_checksum_func_discover_relays(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_ENROLL_BEGIN
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_ENROLL_BEGIN
+uint16_t uniffi_ghost_ios_checksum_func_enroll_begin(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_ENROLL_FINISH
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_ENROLL_FINISH
+uint16_t uniffi_ghost_ios_checksum_func_enroll_finish(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_ENROLL_REQUEST_LINK
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_ENROLL_REQUEST_LINK
+uint16_t uniffi_ghost_ios_checksum_func_enroll_request_link(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_GENERATE_CONVERSATION_KEY
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_GENERATE_CONVERSATION_KEY
 uint16_t uniffi_ghost_ios_checksum_func_generate_conversation_key(void
@@ -1059,6 +1116,12 @@ uint16_t uniffi_ghost_ios_checksum_func_generate_conversation_key(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_GET_PEER_LAST_SEEN
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_GET_PEER_LAST_SEEN
 uint16_t uniffi_ghost_ios_checksum_func_get_peer_last_seen(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_HAS_CREDENTIAL
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_HAS_CREDENTIAL
+uint16_t uniffi_ghost_ios_checksum_func_has_credential(void
     
 );
 #endif
@@ -1149,6 +1212,12 @@ uint16_t uniffi_ghost_ios_checksum_func_load_relationship(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_LOAD_USER_PROFILE
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_LOAD_USER_PROFILE
 uint16_t uniffi_ghost_ios_checksum_func_load_user_profile(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_REFRESH_NETWORK
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_REFRESH_NETWORK
+uint16_t uniffi_ghost_ios_checksum_func_refresh_network(void
     
 );
 #endif

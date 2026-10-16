@@ -1,5 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+	<key>ZKRPBootstrapRelays</key>
+	<string>$(ZKRP_BOOTSTRAP_RELAYS)</string>
+	<key>ZKRPIssuerPublicKey</key>
+	<string>$(ZKRP_ISSUER_PUBLIC_KEY)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>dev.bangasser.FratRat.verify</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fratrat</string>
+			</array>
+		</dict>
+	</array>
+</dict>
 </plist>

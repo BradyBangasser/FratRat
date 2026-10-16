@@ -19,6 +19,8 @@
 		F5718AB22FC4914C00651802 /* FratRatApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718AB12FC4914C00651802 /* FratRatApp.swift */; };
 		F5718AC22FC492F000651802 /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718AC12FC492F000651802 /* LandingView.swift */; };
 		F5718ACE2FC4940400651802 /* MeshManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718ACD2FC493FE00651802 /* MeshManager.swift */; };
+		002E44F36B6BE7CE99CA962B /* Enrollment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C279648527612C89127452B /* Enrollment.swift */; };
+		EC44F1F583A7D88F7A62D7A1 /* ZkrpConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F973DECC6719FB6D330C8F4 /* ZkrpConfig.swift */; };
 		F5718AD72FC4990F00651802 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5718AC62FC4936100651802 /* Color.swift */; };
 		F5718ADB2FC4A08C00651802 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F5718ADA2FC4A08C00651802 /* Security.framework */; };
 		F5718ADD2FC4A09800651802 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F5718ADC2FC4A09800651802 /* SystemConfiguration.framework */; };
@@ -56,7 +58,10 @@
 		F5718AB12FC4914C00651802 /* FratRatApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FratRatApp.swift; sourceTree = "<group>"; };
 		F5718AC12FC492F000651802 /* LandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandingView.swift; sourceTree = "<group>"; };
 		F5718AC62FC4936100651802 /* Color.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Color.swift; sourceTree = "<group>"; };
+		9EFEA3720A3EA6B4B4104578 /* Zkrp.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Zkrp.xcconfig; sourceTree = "<group>"; };
 		F5718ACD2FC493FE00651802 /* MeshManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshManager.swift; sourceTree = "<group>"; };
+		2C279648527612C89127452B /* Enrollment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enrollment.swift; sourceTree = "<group>"; };
+		1F973DECC6719FB6D330C8F4 /* ZkrpConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZkrpConfig.swift; sourceTree = "<group>"; };
 		F5718ADA2FC4A08C00651802 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.4.sdk/System/Library/Frameworks/Security.framework; sourceTree = DEVELOPER_DIR; };
 		F5718ADC2FC4A09800651802 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.4.sdk/System/Library/Frameworks/SystemConfiguration.framework; sourceTree = DEVELOPER_DIR; };
 		F5718ADE2FC4A09E00651802 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.4.sdk/usr/lib/libresolv.tbd; sourceTree = DEVELOPER_DIR; };
@@ -106,6 +111,7 @@
 		F5718AA52FC4914C00651802 = {
 			isa = PBXGroup;
 			children = (
+				9EFEA3720A3EA6B4B4104578 /* Zkrp.xcconfig */,
 				F5F72FC72FE73317002BF3A3 /* Assets.xcassets */,
 				F5F72F5E2FE16F13002BF3A3 /* Components */,
 				F546A9692FDD8D4A00736EE5 /* FratRat.entitlements */,
@@ -178,6 +184,8 @@
 			isa = PBXGroup;
 			children = (
 				F5718ACD2FC493FE00651802 /* MeshManager.swift */,
+				2C279648527612C89127452B /* Enrollment.swift */,
+				1F973DECC6719FB6D330C8F4 /* ZkrpConfig.swift */,
 			);
 			path = Mesh;
 			sourceTree = "<group>";
@@ -449,7 +457,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nexport PATH=\"$HOME/.cargo/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"\n\nREPO_DIR=\"${SRCROOT}/../zrp\"\n\nif [ ! -d \"$REPO_DIR/.git\" ]; then\n    git clone https://github.com/BradyBangasser/zkrp.git \"$REPO_DIR\"\nelse\n    git -C \"$REPO_DIR\" pull origin main\nfi\n\nif [ \"$PLATFORM_NAME\" = \"iphonesimulator\" ]; then\n    TARGET=\"aarch64-apple-ios-sim\"\nelse\n    TARGET=\"aarch64-apple-ios\"\nfi\n\nrustup target add \"$TARGET\"\n\ncd \"$REPO_DIR\"\ncargo build -p ghost-ios --target \"$TARGET\" --release\n\nmkdir -p \"${SRCROOT}/libs\"\ncp \"target/$TARGET/release/libghost_ios.a\" \"${SRCROOT}/libs/libghost_ios.a\"\n\ncargo install uniffi --version 0.31.1 --features cli --locked 2>/dev/null || true\n~/.cargo/bin/uniffi-bindgen generate \\\n    \"target/$TARGET/release/libghost_ios.a\" \\\n    --language swift \\\n    --out-dir \"${SRCROOT}/Generated/ghost_ios\"\n";
+			shellScript = "set -e\nexport PATH=\"$HOME/.cargo/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"\n\n# zkrp (libghost) is a sibling checkout, pinned to the ref in zkrp.ref.\nZKRP_DIR=\"${SRCROOT}/../zrp\"\nZKRP_REF=\"$(tr -d '[:space:]' < \"${SRCROOT}/zkrp.ref\")\"\n\nif [ ! -d \"$ZKRP_DIR/.git\" ]; then\n    git clone https://github.com/BradyBangasser/zkrp.git \"$ZKRP_DIR\"\n    git -C \"$ZKRP_DIR\" checkout --quiet \"$ZKRP_REF\"\nelif [ -z \"$(git -C \"$ZKRP_DIR\" status --porcelain)\" ] && ! git -C \"$ZKRP_DIR\" symbolic-ref -q HEAD >/dev/null; then\n    # Clean and detached: a build checkout. Keep it on the pinned ref.\n    git -C \"$ZKRP_DIR\" fetch --quiet --tags origin\n    git -C \"$ZKRP_DIR\" checkout --quiet \"$ZKRP_REF\"\nelse\n    # On a branch or with local changes: someone is developing zkrp. Leave it.\n    echo \"warning: building zkrp from your checkout ($(git -C \"$ZKRP_DIR\" rev-parse --abbrev-ref HEAD)), not the pinned $ZKRP_REF\"\nfi\n\nif [ \"$PLATFORM_NAME\" = \"iphonesimulator\" ]; then\n    TARGET=\"aarch64-apple-ios-sim\"\nelse\n    TARGET=\"aarch64-apple-ios\"\nfi\n\nrustup target add \"$TARGET\"\n\ncd \"${SRCROOT}/rust\"\ncargo build -p ghost-ios --target \"$TARGET\" --release --locked\n\nmkdir -p \"${SRCROOT}/libs\"\ncp \"target/$TARGET/release/libghost_ios.a\" \"${SRCROOT}/libs/libghost_ios.a\"\n\ncargo install uniffi --version 0.31.1 --features cli --locked 2>/dev/null || true\n~/.cargo/bin/uniffi-bindgen generate \\\n    \"target/$TARGET/release/libghost_ios.a\" \\\n    --language swift \\\n    --out-dir \"${SRCROOT}/Generated/ghost_ios\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -468,6 +476,8 @@
 				F5ABB0D12FEF37DF009DB4F0 /* InviteByNameView.swift in Sources */,
 				F5718AD72FC4990F00651802 /* Color.swift in Sources */,
 				F5718ACE2FC4940400651802 /* MeshManager.swift in Sources */,
+				002E44F36B6BE7CE99CA962B /* Enrollment.swift in Sources */,
+				EC44F1F583A7D88F7A62D7A1 /* ZkrpConfig.swift in Sources */,
 				F546A9682FDD87AB00736EE5 /* JoinChatView.swift in Sources */,
 				F5718B0F2FC7C48A00651802 /* SettingsView.swift in Sources */,
 				F56786F22FF1AD2A003EA3E0 /* Haptic.swift in Sources */,
@@ -607,6 +617,7 @@
 		};
 		F5718ABC2FC4914E00651802 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9EFEA3720A3EA6B4B4104578 /* Zkrp.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -678,6 +689,7 @@
 		};
 		F5718ABD2FC4914E00651802 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9EFEA3720A3EA6B4B4104578 /* Zkrp.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

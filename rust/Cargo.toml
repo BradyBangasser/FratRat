@@ -1,0 +1,8 @@
+# FratRat's Rust: the iOS core (`ios`, built into libs/libghost_ios.a) and a
+# terminal test client (`cli`). Both sit on zkrp's libghost.
+#
+# zkrp is expected as a sibling checkout at ../../zrp (the Xcode build phase
+# clones it there and checks out the ref in ../zkrp.ref).
+[workspace]
+members = ["ios", "cli"]
+resolver = "2"

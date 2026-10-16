@@ -712,8 +712,8 @@ private struct CustomRelayInput: View {
         resolveError = nil
         resolvedMultiaddr = nil
 
-        let (cleanHost, grpcPort) = parseHostPort(host, defaultPort: 9001)
-        let grpcAddr = "http://\(cleanHost):\(grpcPort)"
+        // https unless the person typed http:// (local testing).
+        let grpcAddr = ZkrpConfig.grpcURL(fromUserInput: host)
 
         do {
             let results = try await withThrowingTaskGroup(of: [RelayInfo].self) { group in
@@ -737,7 +737,7 @@ private struct CustomRelayInput: View {
                 resolveError = nil
             } else {
                 resolveState = .failed
-                resolveError = "No relays registered on \(cleanHost):\(grpcPort) — is the relay running?"
+                resolveError = "No relays registered at \(grpcAddr) — is the relay running?"
             }
 
         } catch is TimeoutError {
@@ -752,20 +752,6 @@ private struct CustomRelayInput: View {
 
     private struct TimeoutError: Error {}
 
-    /// Parse "host:port" or just "host" — returns (host, port)
-    private func parseHostPort(_ input: String, defaultPort: UInt16) -> (String, UInt16) {
-        let stripped = input
-            .replacingOccurrences(of: "http://", with: "")
-            .replacingOccurrences(of: "https://", with: "")
-
-        if let colon = stripped.lastIndex(of: ":") {
-            let portStr = String(stripped[stripped.index(after: colon)...])
-            if let port = UInt16(portStr) {
-                return (String(stripped[..<colon]), port)
-            }
-        }
-        return (stripped, defaultPort)
-    }
 }
 
 // MARK: - Section label

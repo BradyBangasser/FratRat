@@ -7,13 +7,12 @@ import SwiftUI
 
 @main
 struct FratRatApp: App {
-    @StateObject private var mesh = MeshManager(
-        grpcAddr: ProcessInfo.processInfo.environment["GRPC_ADDR"]
-            ?? "http://relay.a.central.eu.infra.zkrp.net:9001"
-    )
+    @StateObject private var mesh = MeshManager()
+    @StateObject private var enrollment = Enrollment()
     @AppStorage("appearanceMode") private var appearanceRaw: String = AppearanceMode.system.rawValue
 
     @State private var isOnboarded = UserProfile.load().isComplete
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         // Start capturing stdout/stderr (Rust tracing + Swift print) to disk
@@ -31,6 +30,16 @@ struct FratRatApp: App {
                 if isOnboarded {
                     MainTabView()
                         .environmentObject(mesh)
+                        // Credentials expire with the epoch; re-verify before
+                        // relays start refusing us.
+                        .sheet(isPresented: .constant(enrollment.needsRenewal)) {
+                            NavigationStack {
+                                EduVerificationView(isRenewal: true)
+                                    .environmentObject(mesh)
+                                    .environmentObject(enrollment)
+                            }
+                            .interactiveDismissDisabled()
+                        }
                         .task {
                             if !mesh.connectionState.isConnected {
                                 await mesh.findRelays()
@@ -46,7 +55,19 @@ struct FratRatApp: App {
                     .environmentObject(mesh)
                 }
             }
+            .environmentObject(enrollment)
+            // Magic links: fratrat://verify#<token>, or a universal link.
+            .onOpenURL { url in
+                Task { await enrollment.redeem(from: url) }
+            }
+            .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                guard let url = activity.webpageURL else { return }
+                Task { await enrollment.redeem(from: url) }
+            }
             .preferredColorScheme(appearanceMode.colorScheme)
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { enrollment.refresh() }
+            }
         }
     }
 }

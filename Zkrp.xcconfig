@@ -1,0 +1,21 @@
+// zkrp network settings for the app. This is the only place they live; the
+// app learns everything else (auth service, CDN, the full relay list) from
+// the relays at runtime and caches it.
+//
+// Note: `//` starts a comment in .xcconfig files, so write bare hostnames
+// (https is assumed) rather than URLs. Use a full URL only for local plaintext
+// testing, via the Xcode scheme's GRPC_ADDR environment variable.
+
+// Relays to ask first, comma-separated. Any one answering is enough.
+// bootstrap.zkrp.net resolves to a healthy relay (see zkrp's
+// docs/deployment.md); a specific relay follows in case that name is down.
+// The app then measures every relay it learns about and uses the nearest.
+ZKRP_BOOTSTRAP_RELAYS = bootstrap.zkrp.net, relay.a.central.us.infra.zkrp.net
+
+// Credential issuer public key from `zkrp-auth keygen` (hex). Pinned so a
+// relay or auth server can't substitute its own. Empty accepts any key:
+// development only.
+ZKRP_ISSUER_PUBLIC_KEY =
+
+// Per-developer overrides (gitignored), e.g. a local relay.
+#include? "Zkrp.local.xcconfig"

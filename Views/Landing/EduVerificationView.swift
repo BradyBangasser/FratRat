@@ -6,18 +6,24 @@
 import SwiftUI
 
 // MARK: - EduVerificationView
-// Second step of onboarding — collect .edu email.
-// UI only for now: no network calls, validates the email format
-// looks like a .edu address and shows a "check your inbox" state.
+// Second step of onboarding — collect the .edu email, request a magic link,
+// and continue once the link has been redeemed for an anonymous credential
+// (see Enrollment).
 struct EduVerificationView: View {
     @EnvironmentObject var mesh: MeshManager
+    @EnvironmentObject var enrollment: Enrollment
     @Environment(\.dismiss) private var dismiss
     @State private var email = ""
     @State private var emailSubmitted = false
     @FocusState private var emailFieldFocused: Bool
     @State private var navigateToProfile = false
+    @State private var isSending = false
+    @State private var sendError: String?
 
     var onOnboardingComplete: () -> Void = {}
+    /// Re-verifying an expiring credential after onboarding: no back button,
+    /// no profile setup afterwards; the presenting sheet closes on success.
+    var isRenewal = false
 
     private var isValidEduEmail: Bool {
         let trimmed = email.trimmingCharacters(in: .whitespaces).lowercased()
@@ -36,14 +42,16 @@ struct EduVerificationView: View {
 
                 // ── Back button ───────────────────────────────────────────
                 HStack {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.fratDark)
-                            .frame(width: 36, height: 36)
-                            .background(Circle().fill(Color.fratCard))
+                    if !isRenewal {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.fratDark)
+                                .frame(width: 36, height: 36)
+                                .background(Circle().fill(Color.fratCard))
+                        }
                     }
                     Spacer()
                 }
@@ -56,6 +64,9 @@ struct EduVerificationView: View {
                     formState
                 }
             }
+        }
+        .onChange(of: enrollment.isEnrolled) { _, enrolled in
+            if enrolled && !isRenewal { navigateToProfile = true }
         }
         .navigationDestination(isPresented: $navigateToProfile) {
             ProfileSetupView(onOnboardingComplete: onOnboardingComplete)
@@ -90,7 +101,9 @@ struct EduVerificationView: View {
                     .font(.system(size: 28, weight: .black))
                     .foregroundColor(.fratDark)
                     .multilineTextAlignment(.center)
-                Text("FratRat is for college students only.\nWe'll send a link to confirm your enrollment.")
+                Text(isRenewal
+                     ? "Your verification renews monthly.\nWe'll send a fresh link to your school email."
+                     : "FratRat is for college students only.\nWe'll send a link to confirm your enrollment.")
                     .font(.fratBody(15))
                     .foregroundColor(.fratGray)
                     .multilineTextAlignment(.center)
@@ -145,6 +158,11 @@ struct EduVerificationView: View {
                         .font(.fratBody(12))
                         .foregroundColor(.fratGray)
                 }
+                if let sendError {
+                    Text(sendError)
+                        .font(.fratBody(12))
+                        .foregroundColor(.red)
+                }
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 20)
@@ -173,7 +191,7 @@ struct EduVerificationView: View {
             Button {
                 submit()
             } label: {
-                Text("Send verification link")
+                Text(isSending ? "Sending…" : "Send verification link")
                     .font(.fratBold(17))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -183,7 +201,7 @@ struct EduVerificationView: View {
                             .fill(isValidEduEmail ? Color.fratDark : Color.fratGray)
                     )
             }
-            .disabled(!isValidEduEmail)
+            .disabled(!isValidEduEmail || isSending)
             .padding(.horizontal, 24)
             .padding(.bottom, 36)
         }
@@ -241,17 +259,35 @@ struct EduVerificationView: View {
             }
             .padding(.bottom, 16)
 
-            // For now (no backend yet) — allow continuing directly.
-            // Remove this once magic-link verification is wired up.
-            Button {
-                navigateToProfile = true
-            } label: {
-                Text("Continue")
-                    .font(.fratBold(17))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(Color.fratDark))
+            if enrollment.isRedeeming {
+                ProgressView("Verifying…")
+                    .padding(.bottom, 12)
+            }
+            if let error = enrollment.lastError {
+                Text(error)
+                    .font(.fratBody(13))
+                    .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 12)
+            }
+
+            // Continues automatically once the link is redeemed.
+            if !isRenewal {
+                Button {
+                    navigateToProfile = true
+                } label: {
+                    Text("Continue")
+                        .font(.fratBold(17))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(enrollment.isEnrolled ? Color.fratDark : Color.fratGray)
+                        )
+                }
+                .disabled(!enrollment.isEnrolled)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 36)
@@ -260,12 +296,18 @@ struct EduVerificationView: View {
 
     private func submit() {
         emailFieldFocused = false
-        withAnimation {
-            emailSubmitted = true
+        sendError = nil
+        isSending = true
+        let address = email.trimmingCharacters(in: .whitespaces)
+        Task {
+            defer { isSending = false }
+            do {
+                try await enrollment.requestLink(email: address)
+                withAnimation { emailSubmitted = true }
+            } catch {
+                sendError = error.localizedDescription
+            }
         }
-        // NOTE: no network call yet — UI only.
-        // When the backend is ready, call the magic-link endpoint here:
-        //   await AuthService.sendMagicLink(email: email)
     }
 }
 
@@ -295,5 +337,6 @@ private struct StepRow: View {
 #Preview {
     NavigationStack {
         EduVerificationView()
+            .environmentObject(Enrollment())
     }
 }

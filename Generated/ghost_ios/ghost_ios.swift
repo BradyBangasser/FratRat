@@ -1565,9 +1565,9 @@ public func FfiConverterTypeInvitePayload_lower(_ value: InvitePayload) -> RustB
 
 
 /**
- * Sent as content_type 0x0051 (LIKE_BACK) — confirms mutual match.
- * Contains the same conversation_key_enc (re-encrypted to sender)
- * so both sides end up with the same decrypted conversation key.
+ * Sent as content_type 0x0051 (LIKE_BACK) — confirms a mutual match. Carries
+ * the same conversation key re-encrypted to the original sender, so both sides
+ * decrypt the same conversation key.
  */
 public struct LikeBackPayload: Equatable, Hashable {
     public var conversationId: String
@@ -1633,9 +1633,9 @@ public func FfiConverterTypeLikeBackPayload_lower(_ value: LikeBackPayload) -> R
 
 /**
  * Sent as content_type 0x0050 (LIKE) over the peer's DM topic.
- * conversation_key_enc is the proposed conversation key encrypted
- * to the recipient's libp2p public key via encrypt_for_peer().
- * The relay sees only ciphertext; neither key nor intent is exposed.
+ * `conversation_key_enc` is the proposed conversation key encrypted to the
+ * recipient's libp2p public key via `encrypt_for_peer()`. The relay sees only
+ * ciphertext; neither key nor intent is exposed.
  */
 public struct LikePayload: Equatable, Hashable {
     public var conversationKeyEnc: Data
@@ -1692,6 +1692,87 @@ public func FfiConverterTypeLikePayload_lift(_ buf: RustBuffer) throws -> LikePa
 #endif
 public func FfiConverterTypeLikePayload_lower(_ value: LikePayload) -> RustBuffer {
     return FfiConverterTypeLikePayload.lower(value)
+}
+
+
+/**
+ * Everything the app needs to reach the network, learned at runtime.
+ */
+public struct NetworkInfo: Equatable, Hashable {
+    public var relays: [RelayInfo]
+    public var authUrl: String
+    public var blobCdnDomain: String
+    /**
+     * gRPC URLs to try for blob/log calls, best first.
+     */
+    public var grpcUrls: [String]
+    /**
+     * True when no relay answered and this is the cached copy.
+     */
+    public var stale: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(relays: [RelayInfo], authUrl: String, blobCdnDomain: String, 
+        /**
+         * gRPC URLs to try for blob/log calls, best first.
+         */grpcUrls: [String], 
+        /**
+         * True when no relay answered and this is the cached copy.
+         */stale: Bool) {
+        self.relays = relays
+        self.authUrl = authUrl
+        self.blobCdnDomain = blobCdnDomain
+        self.grpcUrls = grpcUrls
+        self.stale = stale
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension NetworkInfo: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeNetworkInfo: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> NetworkInfo {
+        return
+            try NetworkInfo(
+                relays: FfiConverterSequenceTypeRelayInfo.read(from: &buf), 
+                authUrl: FfiConverterString.read(from: &buf), 
+                blobCdnDomain: FfiConverterString.read(from: &buf), 
+                grpcUrls: FfiConverterSequenceString.read(from: &buf), 
+                stale: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: NetworkInfo, into buf: inout [UInt8]) {
+        FfiConverterSequenceTypeRelayInfo.write(value.relays, into: &buf)
+        FfiConverterString.write(value.authUrl, into: &buf)
+        FfiConverterString.write(value.blobCdnDomain, into: &buf)
+        FfiConverterSequenceString.write(value.grpcUrls, into: &buf)
+        FfiConverterBool.write(value.stale, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeNetworkInfo_lift(_ buf: RustBuffer) throws -> NetworkInfo {
+    return try FfiConverterTypeNetworkInfo.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeNetworkInfo_lower(_ value: NetworkInfo) -> RustBuffer {
+    return FfiConverterTypeNetworkInfo.lower(value)
 }
 
 
@@ -1934,15 +2015,33 @@ public struct RelayInfo: Equatable, Hashable {
     public var region: String
     public var load: UInt32
     public var meshes: [String]
+    /**
+     * Empty when the relay has no public gRPC endpoint.
+     */
+    public var grpcUrl: String
+    /**
+     * Measured connect time from this device; None if unmeasured or
+     * unreachable. refresh_network returns relays nearest first.
+     */
+    public var rttMs: UInt32?
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(multiaddr: String, peerId: String, region: String, load: UInt32, meshes: [String]) {
+    public init(multiaddr: String, peerId: String, region: String, load: UInt32, meshes: [String], 
+        /**
+         * Empty when the relay has no public gRPC endpoint.
+         */grpcUrl: String, 
+        /**
+         * Measured connect time from this device; None if unmeasured or
+         * unreachable. refresh_network returns relays nearest first.
+         */rttMs: UInt32?) {
         self.multiaddr = multiaddr
         self.peerId = peerId
         self.region = region
         self.load = load
         self.meshes = meshes
+        self.grpcUrl = grpcUrl
+        self.rttMs = rttMs
     }
 
     
@@ -1965,7 +2064,9 @@ public struct FfiConverterTypeRelayInfo: FfiConverterRustBuffer {
                 peerId: FfiConverterString.read(from: &buf), 
                 region: FfiConverterString.read(from: &buf), 
                 load: FfiConverterUInt32.read(from: &buf), 
-                meshes: FfiConverterSequenceString.read(from: &buf)
+                meshes: FfiConverterSequenceString.read(from: &buf), 
+                grpcUrl: FfiConverterString.read(from: &buf), 
+                rttMs: FfiConverterOptionUInt32.read(from: &buf)
         )
     }
 
@@ -1975,6 +2076,8 @@ public struct FfiConverterTypeRelayInfo: FfiConverterRustBuffer {
         FfiConverterString.write(value.region, into: &buf)
         FfiConverterUInt32.write(value.load, into: &buf)
         FfiConverterSequenceString.write(value.meshes, into: &buf)
+        FfiConverterString.write(value.grpcUrl, into: &buf)
+        FfiConverterOptionUInt32.write(value.rttMs, into: &buf)
     }
 }
 
@@ -2079,6 +2182,8 @@ public enum MeshError: Swift.Error, Equatable, Hashable, Foundation.LocalizedErr
     )
     case BlobError(msg: String
     )
+    case EnrollError(msg: String
+    )
     case Unknown
 
     
@@ -2118,7 +2223,10 @@ public struct FfiConverterTypeMeshError: FfiConverterRustBuffer {
         case 5: return .BlobError(
             msg: try FfiConverterString.read(from: &buf)
             )
-        case 6: return .Unknown
+        case 6: return .EnrollError(
+            msg: try FfiConverterString.read(from: &buf)
+            )
+        case 7: return .Unknown
 
          default: throw UniffiInternalError.unexpectedEnumCase
         }
@@ -2153,8 +2261,13 @@ public struct FfiConverterTypeMeshError: FfiConverterRustBuffer {
             FfiConverterString.write(msg, into: &buf)
             
         
-        case .Unknown:
+        case let .EnrollError(msg):
             writeInt(&buf, Int32(6))
+            FfiConverterString.write(msg, into: &buf)
+            
+        
+        case .Unknown:
+            writeInt(&buf, Int32(7))
         
         }
     }
@@ -2940,6 +3053,54 @@ public func FfiConverterCallbackInterfaceSwiftEventHandler_lower(_ v: SwiftEvent
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionUInt32: FfiConverterRustBuffer {
+    typealias SwiftType = UInt32?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterUInt32.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterUInt32.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionUInt64: FfiConverterRustBuffer {
+    typealias SwiftType = UInt64?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterUInt64.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterUInt64.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionString: FfiConverterRustBuffer {
     typealias SwiftType = String?
 
@@ -2980,6 +3141,30 @@ fileprivate struct FfiConverterOptionTypeAlertProfile: FfiConverterRustBuffer {
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterTypeAlertProfile.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeNetworkInfo: FfiConverterRustBuffer {
+    typealias SwiftType = NetworkInfo?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeNetworkInfo.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeNetworkInfo.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -3309,6 +3494,15 @@ public func clearAllCaches()  {try! rustCall() {
 }
 }
 /**
+ * Unix seconds after which relays stop accepting the credential, if any.
+ */
+public func credentialExpiresAt() -> UInt64?  {
+    return try!  FfiConverterOptionUInt64.lift(try! rustCall() {
+    uniffi_ghost_ios_fn_func_credential_expires_at($0
+    )
+})
+}
+/**
  * Delete an alert from the cache.
  */
 public func deleteAlert(id: UInt64)  {try! rustCall() {
@@ -3343,6 +3537,52 @@ public func discoverRelays(grpcAddr: String) -> [RelayInfo]  {
 })
 }
 /**
+ * Start redeeming: returns the 32-byte clientDataHash to attest over.
+ */
+public func enrollBegin()throws  -> Data  {
+    return try  FfiConverterData.lift(try rustCallWithError(FfiConverterTypeMeshError_lift) {
+    uniffi_ghost_ios_fn_func_enroll_begin($0
+    )
+})
+}
+/**
+ * Finish redeeming with the link token and the App Attest attestation.
+ * `pinned_issuer_hex` is the issuer public key shipped with the app.
+ * Returns the credential's epoch.
+ */
+public func enrollFinish(authAddr: String, token: String, attestation: Data, pinnedIssuerHex: String?)async throws  -> UInt64  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_ghost_ios_fn_func_enroll_finish(FfiConverterString.lower(authAddr),FfiConverterString.lower(token),FfiConverterData.lower(attestation),FfiConverterOptionString.lower(pinnedIssuerHex)
+                )
+            },
+            pollFunc: ffi_ghost_ios_rust_future_poll_u64,
+            completeFunc: ffi_ghost_ios_rust_future_complete_u64,
+            freeFunc: ffi_ghost_ios_rust_future_free_u64,
+            liftFunc: FfiConverterUInt64.lift,
+            errorHandler: FfiConverterTypeMeshError_lift
+        )
+}
+/**
+ * Ask the auth service to email a magic link. The address goes only to the
+ * auth service and is not stored on the device.
+ */
+public func enrollRequestLink(authAddr: String, email: String)async throws   {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_ghost_ios_fn_func_enroll_request_link(FfiConverterString.lower(authAddr),FfiConverterString.lower(email)
+                )
+            },
+            pollFunc: ffi_ghost_ios_rust_future_poll_void,
+            completeFunc: ffi_ghost_ios_rust_future_complete_void,
+            freeFunc: ffi_ghost_ios_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeMeshError_lift
+        )
+}
+/**
  * Generate 32 random bytes suitable for use as a conversation key.
  * Free function so Swift can call it as generateConversationKey()
  * without needing a NodeIdentity instance.
@@ -3361,6 +3601,15 @@ public func getPeerLastSeen(peerId: String) -> UInt64  {
     return try!  FfiConverterUInt64.lift(try! rustCall() {
     uniffi_ghost_ios_fn_func_get_peer_last_seen(
         FfiConverterString.lower(peerId),$0
+    )
+})
+}
+/**
+ * True once this device holds a credential relays will still accept.
+ */
+public func hasCredential() -> Bool  {
+    return try!  FfiConverterBool.lift(try! rustCall() {
+    uniffi_ghost_ios_fn_func_has_credential($0
     )
 })
 }
@@ -3509,6 +3758,25 @@ public func loadUserProfile() -> PeerProfile?  {
 })
 }
 /**
+ * Learn the network from the bootstrap URLs (then relays cached from earlier
+ * runs). None only on a first launch with no reachable relay.
+ */
+public func refreshNetwork(bootstrap: [String])async  -> NetworkInfo?  {
+    return
+        try!  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_ghost_ios_fn_func_refresh_network(FfiConverterSequenceString.lower(bootstrap)
+                )
+            },
+            pollFunc: ffi_ghost_ios_rust_future_poll_rust_buffer,
+            completeFunc: ffi_ghost_ios_rust_future_complete_rust_buffer,
+            freeFunc: ffi_ghost_ios_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterOptionTypeNetworkInfo.lift,
+            errorHandler: nil
+            
+        )
+}
+/**
  * Save an alert to the local cache (keyed by alert ID).
  */
 public func saveAlert(alert: AlertProfile) -> Bool  {
@@ -3629,6 +3897,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ghost_ios_checksum_func_clear_all_caches() != 5462) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_ghost_ios_checksum_func_credential_expires_at() != 62497) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_ghost_ios_checksum_func_delete_alert() != 49740) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -3641,10 +3912,22 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ghost_ios_checksum_func_discover_relays() != 12885) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_ghost_ios_checksum_func_enroll_begin() != 33970) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_enroll_finish() != 56664) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_enroll_request_link() != 25971) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_ghost_ios_checksum_func_generate_conversation_key() != 62510) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_func_get_peer_last_seen() != 19538) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_has_credential() != 16729) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_func_load_alert() != 28252) {
@@ -3690,6 +3973,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_func_load_user_profile() != 3732) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_refresh_network() != 31976) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_func_save_alert() != 57586) {
@@ -3749,10 +4035,10 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ghost_ios_checksum_method_meshnode_send_invite_decline() != 22453) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ghost_ios_checksum_method_meshnode_send_like() != 65452) {
+    if (uniffi_ghost_ios_checksum_method_meshnode_send_like() != 14476) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ghost_ios_checksum_method_meshnode_send_like_back() != 6311) {
+    if (uniffi_ghost_ios_checksum_method_meshnode_send_like_back() != 41510) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_method_meshnode_send_like_declined() != 51867) {
@@ -3839,10 +4125,10 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_messages_backfilled() != 64413) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_like_received() != 25970) {
+    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_like_received() != 56030) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_like_back_received() != 13046) {
+    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_like_back_received() != 39205) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_like_declined() != 58486) {

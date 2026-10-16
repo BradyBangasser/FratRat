@@ -78,19 +78,13 @@ final class MeshManager: ObservableObject {
 
     private var node:     MeshNode?
     private var identity: NodeIdentity?
-    private let grpcAddr: String
-    private let cfDomain: String
+    /// The relay gRPC URL for blob and log calls. Learned from the network
+    /// directory in findRelays(); starts at the first bootstrap relay.
+    private var grpcAddr: String = ZkrpConfig.bootstrapRelays.first ?? ""
     private let broadcastTopic = "ghost/broadcast/v1"
     private let invitePrefix   = "fratrat/v1/invite/"
 
-    init(
-        grpcAddr: String = "http://relay.a.central.eu.infra.zkrp.net:9001",
-        cfDomain: String = "blobfront.infra.zkrp.net"
-    ) {
-        self.grpcAddr = grpcAddr
-        self.cfDomain = cfDomain
-        Swift.print("GRPC ADDR: " + self.grpcAddr)
-    }
+    init() {}
 
     // MARK: - Invite conversations
 
@@ -110,22 +104,14 @@ final class MeshManager: ObservableObject {
         connectionState = .discoveringRelays
         availableRelays = []
 
-        let results = discoverRelays(grpcAddr: grpcAddr)
-        Swift.print("[mesh] discoverRelays returned \(results.count) results")
+        // Bootstrap relays first, then relays cached from earlier runs.
+        let network = await ZkrpNetwork.shared.refresh()
+        if let url = ZkrpNetwork.shared.grpcURL { grpcAddr = url }
+        let results = network?.relays ?? []
+        Swift.print("[mesh] network directory: \(results.count) relays, stale=\(network?.stale ?? true)")
 
         if results.isEmpty {
-            let fallbackAddr = ProcessInfo.processInfo
-                .environment["RELAY_ADDR"] ?? "/ip4/relay.a.central.us.infra.zkrp.net/tcp/9000"
-            availableRelays = [
-                RelayInfoViewModel(
-                    multiaddr: fallbackAddr,
-                    peerId:    "unknown",
-                    region:    "local",
-                    load:      0,
-                    meshes:    ["fratrat-v1"]
-                )
-            ]
-            connectionState = .failed("No relays found via gRPC — using fallback")
+            connectionState = .failed("Can't reach any relay. Check your connection.")
         } else {
             availableRelays = results.map {
                 RelayInfoViewModel(
@@ -194,7 +180,9 @@ final class MeshManager: ObservableObject {
 
     @MainActor
     func connectToBestRelay() async {
-        guard let best = availableRelays.min(by: { $0.load < $1.load }) else {
+        // The network directory orders relays nearest first (measured from
+        // this device), with load as the tie-breaker.
+        guard let best = availableRelays.first else {
             connectionState = .failed("No relays available")
             return
         }
