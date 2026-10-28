@@ -8,9 +8,9 @@
 
 // Relays to ask first, comma-separated. Any one answering is enough.
 // bootstrap.zkrp.net resolves to a healthy relay (see zkrp's
-// deploy/README.md); a specific relay follows in case that name is down.
-// The app then measures every relay it learns about and uses the nearest.
-ZKRP_BOOTSTRAP_RELAYS = bootstrap.zkrp.net, relay.a.central.us.infra.zkrp.net
+// deploy/README.md). The app then measures every relay it learns about and
+// uses the nearest.
+ZKRP_BOOTSTRAP_RELAYS = bootstrap.zkrp.net
 
 // Credential issuer public key from `zkrp-auth keygen` (hex). Pinned so a
 // relay or auth server can't substitute its own. Empty accepts any key:
