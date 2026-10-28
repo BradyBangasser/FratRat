@@ -14,21 +14,16 @@ struct ChatView: View {
     @State private var localMessages: [ChatMessage] = []
     @FocusState private var inputFocused: Bool
     @State private var showProfileSheet = false
+    @State private var sendFailed = false
+    @State private var confirmBlock = false
+    @State private var showReport = false
 
-    private var conversationTopic: String {
-        if mesh.isInviteConversation(match.peerId) {
-            return "fratrat/v1/invite/\(match.peerId)"
-        }
-        let a = mesh.myPeerId ?? "local"
-        let b = match.peerId
-        return "fratrat/v1/dm/\(min(a, b))/\(max(a, b))"
-    }
+    /// `match.peerId` is the conversation id.
+    private var conversationId: String { match.peerId }
 
-    private var isOnline: Bool {
-        mesh.connectedPeers[match.peerId] != nil || mesh.isInviteConversation(match.peerId)
-    }
+    private var isOnline: Bool { mesh.connectionState.isConnected }
 
-    private var profile: PeerProfile? { mesh.peerProfiles[match.peerId] }
+    private var profile: PeerProfile? { mesh.profile(forConversation: conversationId) }
 
     // First photo and its key — both required to decrypt
     private var firstBlobId:  String? { profile?.photoBlobIds.first }
@@ -47,7 +42,9 @@ struct ChatView: View {
                     blobKey:  firstBlobKey,
                     initials: profile?.avatarInitials ?? match.avatarInitials,
                     onBack:        { dismiss() },
-                    onTapProfile:  { showProfileSheet = true }
+                    onTapProfile:  { showProfileSheet = true },
+                    onBlock:       mesh.conversationPeers[conversationId] == nil ? nil : { confirmBlock = true },
+                    onReport:      { showReport = true }
                 )
 
                 ScrollViewReader { proxy in
@@ -124,8 +121,39 @@ struct ChatView: View {
             }
             if !newOnes.isEmpty { localMessages.append(contentsOf: newOnes) }
         }
+        .sheet(isPresented: $showReport) {
+            if let peerId = mesh.conversationPeers[conversationId] {
+                ReportView(
+                    peerId:         peerId,
+                    name:           profile?.displayName ?? match.name,
+                    conversationId: conversationId,
+                    onBlocked:      { dismiss() }
+                )
+                .environmentObject(mesh)
+            }
+        }
+        .confirmationDialog(
+            "Block \(profile?.displayName ?? match.name)?",
+            isPresented: $confirmBlock,
+            titleVisibility: .visible
+        ) {
+            Button("Block", role: .destructive) {
+                guard let peerId = mesh.conversationPeers[conversationId] else { return }
+                Task {
+                    await mesh.block(peerId)
+                    dismiss()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("They won't be able to message, like or invite you, and this conversation will be deleted from your phone.")
+        }
+        .alert("Message not sent", isPresented: $sendFailed) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Check your connection and try again.")
+        }
         .task {
-            try? await mesh.subscribe(topic: conversationTopic)
             localMessages = mesh.messages(for: match.peerId)
             mesh.markRead(peerId: match.peerId)
         }
@@ -148,7 +176,13 @@ struct ChatView: View {
         let text = inputText.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return }
         inputText = ""
-        Task { await mesh.send(text, topic: conversationTopic) }
+        Task {
+            if !(await mesh.send(text, conversationId: conversationId)) {
+                // Give the text back so nothing typed is lost.
+                if inputText.isEmpty { inputText = text }
+                sendFailed = true
+            }
+        }
     }
 }
 
@@ -163,6 +197,8 @@ private struct ChatNavBar: View {
     let initials:     String
     let onBack:       () -> Void
     let onTapProfile: () -> Void
+    let onBlock:      (() -> Void)?
+    let onReport:     () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -203,6 +239,23 @@ private struct ChatNavBar: View {
             .buttonStyle(.plain)
 
             Spacer()
+
+            if let onBlock {
+                Menu {
+                    Button(action: onReport) {
+                        Label("Report", systemImage: "exclamationmark.bubble")
+                    }
+                    Button(role: .destructive, action: onBlock) {
+                        Label("Block", systemImage: "nosign")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.fratDark)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(Color.fratBg))
+                }
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -274,7 +327,7 @@ private struct OfflineBanner: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "clock.arrow.circlepath").font(.system(size: 12))
-            Text("Peer is offline — messages will be queued and retried")
+            Text("You're offline. Reconnect to send messages.")
                 .font(.fratBody(12))
         }
         .foregroundColor(.fratGray)
@@ -462,4 +515,100 @@ extension Date {
         unread: 0
     ))
     .environmentObject(MeshManager())
+}
+
+// MARK: - Report
+
+private struct ReportView: View {
+    let peerId:         String
+    let name:           String
+    let conversationId: String
+    let onBlocked:      () -> Void
+
+    @EnvironmentObject var mesh: MeshManager
+    @Environment(\.dismiss) private var dismiss
+    @State private var reason: MeshManager.ReportReason = .harassment
+    @State private var details = ""
+    @State private var includeMessages = true
+    @State private var sending = false
+    @State private var reportId: String?
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if let reportId {
+                    Section {
+                        Text("Thanks. We review every report.")
+                            .font(.fratBold(16))
+                        Text("Report ID: \(reportId)")
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundColor(.fratGray)
+                            .textSelection(.enabled)
+                    }
+                    Section {
+                        Button("Block \(name)", role: .destructive) {
+                            Task {
+                                await mesh.block(peerId)
+                                dismiss()
+                                onBlocked()
+                            }
+                        }
+                        Button("Done") { dismiss() }
+                    }
+                } else {
+                    Section("What's wrong?") {
+                        Picker("Reason", selection: $reason) {
+                            ForEach(MeshManager.ReportReason.allCases) { Text($0.rawValue).tag($0) }
+                        }
+                        .pickerStyle(.inline)
+                        .labelsHidden()
+                    }
+                    Section {
+                        TextField("Anything else we should know (optional)", text: $details, axis: .vertical)
+                            .lineLimit(2...5)
+                        Toggle("Include your last 20 messages with \(name)", isOn: $includeMessages)
+                    } footer: {
+                        Text("Reports don't say who sent them. They include \(name)'s profile and, if you choose, the messages.")
+                    }
+                    if let errorMessage {
+                        Section { Text(errorMessage).foregroundColor(.red) }
+                    }
+                    Section {
+                        Button {
+                            send()
+                        } label: {
+                            if sending { ProgressView() } else { Text("Send report") }
+                        }
+                        .disabled(sending)
+                    }
+                }
+            }
+            .navigationTitle("Report \(name)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }.foregroundColor(.fratPink)
+                }
+            }
+        }
+    }
+
+    private func send() {
+        sending = true
+        errorMessage = nil
+        Task {
+            do {
+                reportId = try await mesh.report(
+                    peerId,
+                    reason:  reason,
+                    details: details.trimmingCharacters(in: .whitespacesAndNewlines),
+                    includeMessagesFrom: includeMessages ? conversationId : nil
+                )
+            } catch {
+                errorMessage = "Couldn't send the report. Check your connection and try again."
+            }
+            sending = false
+        }
+    }
 }

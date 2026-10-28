@@ -7,11 +7,13 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var mesh: MeshManager
+    @EnvironmentObject var enrollment: Enrollment
     @Environment(\.colorScheme) var colorScheme
     @State private var settings = AppSettings.load()
     @State private var profile = UserProfile.load()
     @State private var showLogoutConfirm = false
     @State private var showClearCacheConfirm = false
+    @State private var showDeleteDataConfirm = false
     @State private var showBlockedUsers = false
     @State private var showRelayPicker = false
     @State private var showRelaySwitcher = false
@@ -47,7 +49,7 @@ struct SettingsView: View {
                                     Text("ACCOUNT")
                                         .font(.fratSemi(11))
                                         .foregroundColor(.fratGray)
-                                    Text(profile.email.isEmpty ? "No email set" : profile.email)
+                                    Text(verificationLabel)
                                         .font(.fratBold(15))
                                         .foregroundColor(.fratDark)
                                     if !profile.name.isEmpty || !profile.college.isEmpty {
@@ -313,9 +315,9 @@ struct SettingsView: View {
                                         Text("BLOCKED USERS")
                                             .font(.fratSemi(11))
                                             .foregroundColor(.fratGray)
-                                        Text(settings.blockedPeerIds.isEmpty
+                                        Text(mesh.blockedPeerIds.isEmpty
                                              ? "None blocked"
-                                             : "\(settings.blockedPeerIds.count) blocked")
+                                             : "\(mesh.blockedPeerIds.count) blocked")
                                             .font(.fratBody(15))
                                             .foregroundColor(.fratDark)
                                     }
@@ -335,7 +337,7 @@ struct SettingsView: View {
                                     Text("SAFETY & PRIVACY")
                                         .font(.fratSemi(11))
                                         .foregroundColor(.fratGray)
-                                    Text("Block & report from chat. Party posts expire after 24h. Campus alerts expire after 1h. Location only used for nearby matching.")
+                                    Text("Block or report people from the ••• menu in a chat. Party posts expire after 24h. Campus alerts expire after 1h. Location only used for nearby matching.")
                                         .font(.fratBody(13))
                                         .foregroundColor(.fratDark)
                                         .fixedSize(horizontal: false, vertical: true)
@@ -359,6 +361,31 @@ struct SettingsView: View {
                                             .font(.fratBold(15))
                                             .foregroundColor(.fratDark)
                                         Text("Removes cached profiles, messages, parties, alerts, and relationship history. Your identity (peer ID) is preserved.")
+                                            .font(.fratBody(12))
+                                            .foregroundColor(.fratGray)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.fratGray)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+
+                        Button { showDeleteDataConfirm = true } label: {
+                            SettingsCard {
+                                HStack(spacing: 14) {
+                                    SettingsIcon(systemName: "person.crop.circle.badge.xmark", color: Color(red: 0.7, green: 0.1, blue: 0.1))
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("DELETE MY DATA")
+                                            .font(.fratSemi(11))
+                                            .foregroundColor(.fratGray)
+                                        Text("Delete account from this phone")
+                                            .font(.fratBold(15))
+                                            .foregroundColor(.red)
+                                        Text("Erases your identity, verification, profile, photos and conversations. You'll start over as a new user.")
                                             .font(.fratBody(12))
                                             .foregroundColor(.fratGray)
                                             .fixedSize(horizontal: false, vertical: true)
@@ -446,8 +473,17 @@ struct SettingsView: View {
         } message: {
             Text("This removes all locally cached data — profiles, messages, parties, alerts, and relationship history. Your peer identity is preserved. You'll need to reconnect to the relay.")
         }
+        .alert("Delete your data?", isPresented: $showDeleteDataConfirm) {
+            Button("Delete", role: .destructive) {
+                Task { await mesh.deleteAllData() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This can't be undone. Your profile and photos stop being announced, but copies people already received stay on their phones until their caches expire.")
+        }
         .sheet(isPresented: $showBlockedUsers) {
-            BlockedUsersView(settings: $settings)
+            BlockedUsersView()
+                .environmentObject(mesh)
         }
         .sheet(isPresented: $showRelayPicker) {
             RelayPickerSheet(isPresented: $showRelayPicker)
@@ -457,6 +493,13 @@ struct SettingsView: View {
             RelaySwitcherSheet(isPresented: $showRelaySwitcher)
                 .environmentObject(mesh)
         }
+    }
+
+    private var verificationLabel: String {
+        guard enrollment.isEnrolled, let expiresAt = enrollment.expiresAt else {
+            return "Not verified"
+        }
+        return "Verified until \(expiresAt.formatted(date: .abbreviated, time: .omitted))"
     }
 
     private var connectionDotColor: Color {
@@ -563,13 +606,13 @@ private struct SettingsSectionHeader: View {
 
 // MARK: - Blocked users
 private struct BlockedUsersView: View {
-    @Binding var settings: AppSettings
+    @EnvironmentObject var mesh: MeshManager
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationView {
             ZStack {
                 Color.fratBg.ignoresSafeArea()
-                if settings.blockedPeerIds.isEmpty {
+                if mesh.blockedPeerIds.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: "checkmark.circle").font(.system(size: 40)).foregroundColor(.fratGray)
                         Text("No blocked users").font(.fratBold(18)).foregroundColor(.fratDark)
@@ -579,14 +622,13 @@ private struct BlockedUsersView: View {
                     .padding(32)
                 } else {
                     List {
-                        ForEach(settings.blockedPeerIds, id: \.self) { peerId in
+                        ForEach(mesh.blockedPeerIds.sorted(), id: \.self) { peerId in
                             HStack {
-                                Text(peerId.prefix(16) + "…")
-                                    .font(.system(size: 13, design: .monospaced)).foregroundColor(.fratDark)
+                                Text(mesh.peerProfiles[peerId]?.displayName ?? String(peerId.prefix(16)) + "…")
+                                    .font(.fratBody(15)).foregroundColor(.fratDark)
                                 Spacer()
                                 Button("Unblock") {
-                                    settings.blockedPeerIds.removeAll { $0 == peerId }
-                                    settings.save()
+                                    mesh.unblock(peerId)
                                 }
                                 .font(.fratSemi(13)).foregroundColor(.fratPink)
                             }

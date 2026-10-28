@@ -204,15 +204,13 @@ struct InviteView: View {
         return initials.isEmpty ? "?" : initials.uppercased()
     }
 
-    /// Create the invite and subscribe to its conversation topic so
-    /// we receive the joiner's first message as soon as they connect.
+    /// Create the invite and watch its conversation so we receive the
+    /// joiner's first message as soon as they connect.
     private func setUpInvite() async {
-        guard invite == nil else { return }
-        let myPeerId = mesh.myPeerId ?? "local"
+        guard invite == nil, let myPeerId = mesh.myPeerId else { return }
         let newInvite = ChatInvite.create(inviterPeerId: myPeerId, inviterName: inviterName)
         invite = newInvite
-        await mesh.registerInviteConversation(newInvite.conversationId)
-        try? await mesh.subscribe(topic: newInvite.topic)
+        await mesh.openConversation(newInvite.conversationId, key: newInvite.key, peerId: nil)
     }
 }
 

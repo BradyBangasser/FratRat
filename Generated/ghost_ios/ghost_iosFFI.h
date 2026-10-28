@@ -362,20 +362,6 @@ typedef void (*UniffiCallbackInterfaceSwiftEventHandlerMethod16)(uint64_t, RustB
     );
 
 #endif
-#ifndef UNIFFI_FFIDEF_CALLBACK_INTERFACE_SWIFT_EVENT_HANDLER_METHOD17
-#define UNIFFI_FFIDEF_CALLBACK_INTERFACE_SWIFT_EVENT_HANDLER_METHOD17
-typedef void (*UniffiCallbackInterfaceSwiftEventHandlerMethod17)(uint64_t, RustBuffer, void* _Nonnull, 
-        RustCallStatus *_Nonnull uniffiCallStatus
-    );
-
-#endif
-#ifndef UNIFFI_FFIDEF_CALLBACK_INTERFACE_SWIFT_EVENT_HANDLER_METHOD18
-#define UNIFFI_FFIDEF_CALLBACK_INTERFACE_SWIFT_EVENT_HANDLER_METHOD18
-typedef void (*UniffiCallbackInterfaceSwiftEventHandlerMethod18)(uint64_t, RustBuffer, void* _Nonnull, 
-        RustCallStatus *_Nonnull uniffiCallStatus
-    );
-
-#endif
 #ifndef UNIFFI_FFIDEF_V_TABLE_CALLBACK_INTERFACE_SWIFT_EVENT_HANDLER
 #define UNIFFI_FFIDEF_V_TABLE_CALLBACK_INTERFACE_SWIFT_EVENT_HANDLER
 typedef struct UniffiVTableCallbackInterfaceSwiftEventHandler {
@@ -392,14 +378,12 @@ typedef struct UniffiVTableCallbackInterfaceSwiftEventHandler {
     UniffiCallbackInterfaceSwiftEventHandlerMethod8 _Nonnull onPartiesBackfilled;
     UniffiCallbackInterfaceSwiftEventHandlerMethod9 _Nonnull onAlertReceived;
     UniffiCallbackInterfaceSwiftEventHandlerMethod10 _Nonnull onAlertsBackfilled;
-    UniffiCallbackInterfaceSwiftEventHandlerMethod11 _Nonnull onMessageReceived;
-    UniffiCallbackInterfaceSwiftEventHandlerMethod12 _Nonnull onMessagesBackfilled;
-    UniffiCallbackInterfaceSwiftEventHandlerMethod13 _Nonnull onLikeReceived;
-    UniffiCallbackInterfaceSwiftEventHandlerMethod14 _Nonnull onLikeBackReceived;
-    UniffiCallbackInterfaceSwiftEventHandlerMethod15 _Nonnull onLikeDeclined;
-    UniffiCallbackInterfaceSwiftEventHandlerMethod16 _Nonnull onInviteReceived;
-    UniffiCallbackInterfaceSwiftEventHandlerMethod17 _Nonnull onInviteAccepted;
-    UniffiCallbackInterfaceSwiftEventHandlerMethod18 _Nonnull onInviteDeclined;
+    UniffiCallbackInterfaceSwiftEventHandlerMethod11 _Nonnull onLikeReceived;
+    UniffiCallbackInterfaceSwiftEventHandlerMethod12 _Nonnull onLikeBackReceived;
+    UniffiCallbackInterfaceSwiftEventHandlerMethod13 _Nonnull onLikeDeclined;
+    UniffiCallbackInterfaceSwiftEventHandlerMethod14 _Nonnull onInviteReceived;
+    UniffiCallbackInterfaceSwiftEventHandlerMethod15 _Nonnull onInviteAccepted;
+    UniffiCallbackInterfaceSwiftEventHandlerMethod16 _Nonnull onInviteDeclined;
 } UniffiVTableCallbackInterfaceSwiftEventHandler;
 
 #endif
@@ -443,6 +427,11 @@ uint64_t uniffi_ghost_ios_fn_method_meshnode_blob_storage_bytes(uint64_t ptr
 uint64_t uniffi_ghost_ios_fn_method_meshnode_evict_old_blobs(uint64_t ptr, uint64_t max_age_secs
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_REFRESH_CAMPUS
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_REFRESH_CAMPUS
+uint64_t uniffi_ghost_ios_fn_method_meshnode_refresh_campus(uint64_t ptr
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_REPLY_WITH_PROFILE
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_REPLY_WITH_PROFILE
 uint64_t uniffi_ghost_ios_fn_method_meshnode_reply_with_profile(uint64_t ptr, RustBuffer profile, RustBuffer to_peer_id
@@ -483,11 +472,6 @@ uint64_t uniffi_ghost_ios_fn_method_meshnode_send_like_back(uint64_t ptr, RustBu
 uint64_t uniffi_ghost_ios_fn_method_meshnode_send_like_declined(uint64_t ptr, RustBuffer to_peer_id
 );
 #endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_SEND_MESSAGE
-#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_SEND_MESSAGE
-uint64_t uniffi_ghost_ios_fn_method_meshnode_send_message(uint64_t ptr, RustBuffer topic, RustBuffer text
-);
-#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_SEND_RAW
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_SEND_RAW
 uint64_t uniffi_ghost_ios_fn_method_meshnode_send_raw(uint64_t ptr, RustBuffer topic, RustBuffer payload
@@ -498,14 +482,14 @@ uint64_t uniffi_ghost_ios_fn_method_meshnode_send_raw(uint64_t ptr, RustBuffer t
 uint64_t uniffi_ghost_ios_fn_method_meshnode_shutdown(uint64_t ptr
 );
 #endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_SUBSCRIBE
-#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_SUBSCRIBE
-uint64_t uniffi_ghost_ios_fn_method_meshnode_subscribe(uint64_t ptr, RustBuffer topic
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_SUBSCRIBE_SEALED
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_SUBSCRIBE_SEALED
+uint64_t uniffi_ghost_ios_fn_method_meshnode_subscribe_sealed(uint64_t ptr, RustBuffer topic, RustBuffer key
 );
 #endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_UNSUBSCRIBE
-#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_UNSUBSCRIBE
-uint64_t uniffi_ghost_ios_fn_method_meshnode_unsubscribe(uint64_t ptr, RustBuffer topic
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_UNSUBSCRIBE_SEALED
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_UNSUBSCRIBE_SEALED
+uint64_t uniffi_ghost_ios_fn_method_meshnode_unsubscribe_sealed(uint64_t ptr, RustBuffer topic
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_UPLOAD_PHOTO
@@ -600,6 +584,12 @@ RustBuffer uniffi_ghost_ios_fn_func_credential_expires_at(RustCallStatus *_Nonnu
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_DELETE_ALERT
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_DELETE_ALERT
 void uniffi_ghost_ios_fn_func_delete_alert(uint64_t id, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_DELETE_ALL_LOCAL_DATA
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_DELETE_ALL_LOCAL_DATA
+void uniffi_ghost_ios_fn_func_delete_all_local_data(RustCallStatus *_Nonnull out_status
+    
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_DELETE_CONVERSATION
@@ -779,6 +769,73 @@ uint64_t uniffi_ghost_ios_fn_func_upload_debug_log(RustBuffer data, RustBuffer g
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_UPLOAD_PHOTO_BLOB
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_UPLOAD_PHOTO_BLOB
 uint64_t uniffi_ghost_ios_fn_func_upload_photo_blob(RustBuffer data, RustBuffer grpc_addr
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_RANK_PROFILES
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_RANK_PROFILES
+RustBuffer uniffi_ghost_ios_fn_func_rank_profiles(RustBuffer my_college, RustBuffer profiles, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_HAS_CAMPUS_KEY
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_HAS_CAMPUS_KEY
+int8_t uniffi_ghost_ios_fn_func_has_campus_key(RustCallStatus *_Nonnull out_status
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_CONVERSATION_SEND_TOPIC
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_CONVERSATION_SEND_TOPIC
+RustBuffer uniffi_ghost_ios_fn_func_conversation_send_topic(RustBuffer key, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_CONVERSATION_TOPIC_KEY
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_CONVERSATION_TOPIC_KEY
+RustBuffer uniffi_ghost_ios_fn_func_conversation_topic_key(RustBuffer key, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_CONVERSATION_TOPICS
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_CONVERSATION_TOPICS
+RustBuffer uniffi_ghost_ios_fn_func_conversation_topics(RustBuffer key, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_DELETE_CONVERSATION_KEY
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_DELETE_CONVERSATION_KEY
+void uniffi_ghost_ios_fn_func_delete_conversation_key(RustBuffer conversation_id, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_DEPOSIT_FOR_CONVERSATION
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_DEPOSIT_FOR_CONVERSATION
+uint64_t uniffi_ghost_ios_fn_func_deposit_for_conversation(RustBuffer grpc_addr, RustBuffer key, RustBuffer sealed
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_FETCH_FOR_CONVERSATION
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_FETCH_FOR_CONVERSATION
+uint64_t uniffi_ghost_ios_fn_func_fetch_for_conversation(RustBuffer grpc_addr, RustBuffer conversation_id, RustBuffer key
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_LOAD_ALL_CONVERSATION_KEY_IDS
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_LOAD_ALL_CONVERSATION_KEY_IDS
+RustBuffer uniffi_ghost_ios_fn_func_load_all_conversation_key_ids(RustCallStatus *_Nonnull out_status
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_LOAD_CONVERSATION_KEY
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_LOAD_CONVERSATION_KEY
+RustBuffer uniffi_ghost_ios_fn_func_load_conversation_key(RustBuffer conversation_id, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_OPEN_FOR_CONVERSATION
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_OPEN_FOR_CONVERSATION
+RustBuffer uniffi_ghost_ios_fn_func_open_for_conversation(RustBuffer key, RustBuffer conversation_id, RustBuffer sealed, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_SAVE_CONVERSATION_KEY
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_SAVE_CONVERSATION_KEY
+int8_t uniffi_ghost_ios_fn_func_save_conversation_key(RustBuffer conversation_id, RustBuffer key, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_SEAL_FOR_CONVERSATION
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_SEAL_FOR_CONVERSATION
+RustBuffer uniffi_ghost_ios_fn_func_seal_for_conversation(RustBuffer key, RustBuffer conversation_id, RustBuffer plaintext, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_FFI_GHOST_IOS_RUSTBUFFER_ALLOC
@@ -1071,6 +1128,12 @@ uint16_t uniffi_ghost_ios_checksum_func_delete_alert(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_DELETE_ALL_LOCAL_DATA
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_DELETE_ALL_LOCAL_DATA
+uint16_t uniffi_ghost_ios_checksum_func_delete_all_local_data(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_DELETE_CONVERSATION
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_DELETE_CONVERSATION
 uint16_t uniffi_ghost_ios_checksum_func_delete_conversation(void
@@ -1275,6 +1338,84 @@ uint16_t uniffi_ghost_ios_checksum_func_upload_photo_blob(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_RANK_PROFILES
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_RANK_PROFILES
+uint16_t uniffi_ghost_ios_checksum_func_rank_profiles(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_HAS_CAMPUS_KEY
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_HAS_CAMPUS_KEY
+uint16_t uniffi_ghost_ios_checksum_func_has_campus_key(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_CONVERSATION_SEND_TOPIC
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_CONVERSATION_SEND_TOPIC
+uint16_t uniffi_ghost_ios_checksum_func_conversation_send_topic(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_CONVERSATION_TOPIC_KEY
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_CONVERSATION_TOPIC_KEY
+uint16_t uniffi_ghost_ios_checksum_func_conversation_topic_key(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_CONVERSATION_TOPICS
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_CONVERSATION_TOPICS
+uint16_t uniffi_ghost_ios_checksum_func_conversation_topics(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_DELETE_CONVERSATION_KEY
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_DELETE_CONVERSATION_KEY
+uint16_t uniffi_ghost_ios_checksum_func_delete_conversation_key(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_DEPOSIT_FOR_CONVERSATION
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_DEPOSIT_FOR_CONVERSATION
+uint16_t uniffi_ghost_ios_checksum_func_deposit_for_conversation(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_FETCH_FOR_CONVERSATION
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_FETCH_FOR_CONVERSATION
+uint16_t uniffi_ghost_ios_checksum_func_fetch_for_conversation(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_LOAD_ALL_CONVERSATION_KEY_IDS
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_LOAD_ALL_CONVERSATION_KEY_IDS
+uint16_t uniffi_ghost_ios_checksum_func_load_all_conversation_key_ids(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_LOAD_CONVERSATION_KEY
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_LOAD_CONVERSATION_KEY
+uint16_t uniffi_ghost_ios_checksum_func_load_conversation_key(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_OPEN_FOR_CONVERSATION
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_OPEN_FOR_CONVERSATION
+uint16_t uniffi_ghost_ios_checksum_func_open_for_conversation(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_SAVE_CONVERSATION_KEY
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_SAVE_CONVERSATION_KEY
+uint16_t uniffi_ghost_ios_checksum_func_save_conversation_key(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_SEAL_FOR_CONVERSATION
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_SEAL_FOR_CONVERSATION
+uint16_t uniffi_ghost_ios_checksum_func_seal_for_conversation(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_ANNOUNCE_ALERT
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_ANNOUNCE_ALERT
 uint16_t uniffi_ghost_ios_checksum_method_meshnode_announce_alert(void
@@ -1302,6 +1443,12 @@ uint16_t uniffi_ghost_ios_checksum_method_meshnode_blob_storage_bytes(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_EVICT_OLD_BLOBS
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_EVICT_OLD_BLOBS
 uint16_t uniffi_ghost_ios_checksum_method_meshnode_evict_old_blobs(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_REFRESH_CAMPUS
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_REFRESH_CAMPUS
+uint16_t uniffi_ghost_ios_checksum_method_meshnode_refresh_campus(void
     
 );
 #endif
@@ -1353,12 +1500,6 @@ uint16_t uniffi_ghost_ios_checksum_method_meshnode_send_like_declined(void
     
 );
 #endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_SEND_MESSAGE
-#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_SEND_MESSAGE
-uint16_t uniffi_ghost_ios_checksum_method_meshnode_send_message(void
-    
-);
-#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_SEND_RAW
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_SEND_RAW
 uint16_t uniffi_ghost_ios_checksum_method_meshnode_send_raw(void
@@ -1371,15 +1512,15 @@ uint16_t uniffi_ghost_ios_checksum_method_meshnode_shutdown(void
     
 );
 #endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_SUBSCRIBE
-#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_SUBSCRIBE
-uint16_t uniffi_ghost_ios_checksum_method_meshnode_subscribe(void
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_SUBSCRIBE_SEALED
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_SUBSCRIBE_SEALED
+uint16_t uniffi_ghost_ios_checksum_method_meshnode_subscribe_sealed(void
     
 );
 #endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_UNSUBSCRIBE
-#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_UNSUBSCRIBE
-uint16_t uniffi_ghost_ios_checksum_method_meshnode_unsubscribe(void
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_UNSUBSCRIBE_SEALED
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_UNSUBSCRIBE_SEALED
+uint16_t uniffi_ghost_ios_checksum_method_meshnode_unsubscribe_sealed(void
     
 );
 #endif
@@ -1500,18 +1641,6 @@ uint16_t uniffi_ghost_ios_checksum_method_swifteventhandler_on_alert_received(vo
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_SWIFTEVENTHANDLER_ON_ALERTS_BACKFILLED
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_SWIFTEVENTHANDLER_ON_ALERTS_BACKFILLED
 uint16_t uniffi_ghost_ios_checksum_method_swifteventhandler_on_alerts_backfilled(void
-    
-);
-#endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_SWIFTEVENTHANDLER_ON_MESSAGE_RECEIVED
-#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_SWIFTEVENTHANDLER_ON_MESSAGE_RECEIVED
-uint16_t uniffi_ghost_ios_checksum_method_swifteventhandler_on_message_received(void
-    
-);
-#endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_SWIFTEVENTHANDLER_ON_MESSAGES_BACKFILLED
-#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_SWIFTEVENTHANDLER_ON_MESSAGES_BACKFILLED
-uint16_t uniffi_ghost_ios_checksum_method_swifteventhandler_on_messages_backfilled(void
     
 );
 #endif

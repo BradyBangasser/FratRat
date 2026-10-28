@@ -821,11 +821,20 @@ struct PostAlertView: View {
                                 .font(.fratBody(15)).lineLimit(1...4)
                         }
 
+                        if locationManager.location == nil {
+                            Text("Waiting for your location. Alerts are pinned where you are.")
+                                .font(.fratBody(13)).foregroundColor(.fratGray)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
                         Button { postAlert() } label: {
                             Text("Post Alert").font(.fratBold(17)).foregroundColor(.white)
                                 .frame(maxWidth: .infinity).padding(.vertical, 18)
                                 .background(RoundedRectangle(cornerRadius: 16).fill(Color(red: 0.9, green: 0.2, blue: 0.2)))
-                        }.padding(.bottom, 40)
+                        }
+                        .disabled(locationManager.location == nil)
+                        .opacity(locationManager.location == nil ? 0.4 : 1)
+                        .padding(.bottom, 40)
                     }
                     .padding(.horizontal, 24).padding(.top, 8)
                 }
@@ -840,11 +849,11 @@ struct PostAlertView: View {
     }
 
     private func postAlert() {
+        // An alert pinned anywhere but where it was seen is worse than none.
+        guard let userLoc = locationManager.location else { return }
         let now = UInt64(Date().timeIntervalSince1970)
-        // Use real user location if available, fall back to campus center
-        let userLoc = locationManager.location
-        let lat = userLoc?.coordinate.latitude ?? 42.0267
-        let lon = userLoc?.coordinate.longitude ?? -93.6465
+        let lat = userLoc.coordinate.latitude
+        let lon = userLoc.coordinate.longitude
         let alert = AlertProfile(
             name: selectedType.rawValue,
             id: now,

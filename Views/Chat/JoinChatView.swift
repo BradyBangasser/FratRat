@@ -266,17 +266,13 @@ struct JoinChatView: View {
         pendingInvite = invite
 
         Task {
-            // Register and subscribe to the shared conversation topic
-            await mesh.registerInviteConversation(invite.conversationId)
-            try? await mesh.subscribe(topic: invite.topic)
+            await mesh.openConversation(
+                invite.conversationId, key: invite.key, peerId: invite.inviterPeerId
+            )
 
             // Announce ourselves to the inviter using the name they entered
             let name = displayName.trimmingCharacters(in: .whitespaces)
-            let myPeerId = mesh.myPeerId ?? ""
-            await mesh.send(
-                "JOINED:\(myPeerId)|\(name)",
-                topic: invite.topic
-            )
+            await mesh.announceJoined(conversationId: invite.conversationId, name: name)
 
             await MainActor.run {
                 navigateToChat = true

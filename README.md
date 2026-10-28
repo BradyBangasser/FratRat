@@ -23,8 +23,13 @@ on zkRP specifically because zkRP is privacy-first by design:
 - **Anonymous enrollment.** zkRP proves an account is eligible and issues a blind
   credential without storing an identity. The only thing persisted is a set of
   nullifiers ("has this address enrolled?"), never a mapping to a person.
-- **End-to-end-encrypted messaging.** Direct messages and party updates are
-  encrypted client-side; the network only routes ciphertext by mailbox id.
+- **Nothing in the clear.** Every message travels on a sealed zkRP topic, so
+  relays see opaque topic names and ciphertext: not the account behind a
+  connection, not the content, not the school. Profiles, parties, alerts,
+  likes and invites are sealed with the school's key for the month (from
+  auth, with the credential), so only verified students at that school read
+  them; each account's inbox topic rotates daily and only they can derive it.
+  Chats are sealed again with a key only the two people hold.
 - **Photos as encrypted blobs.** Profile photos are stored in zkRP's blob store
   as opaque, client-encrypted blobs (the app holds the keys), not as public
   images on a server.
@@ -42,12 +47,10 @@ cleanly onto zkRP:
 - **Enrollment is tied to a university.** A student's profile carries their
   college, and enrollment is gated by a university email, so membership in a
   campus network is verifiable without the network learning who the student is.
-- **Each campus is its own mesh.** zkRP relays serve named gossipsub meshes, so a
-  university's traffic can live on its own mesh, isolated from every other
-  school.
-
-The app runs on a FratRat mesh today; per-university meshes are the direction
-this isolation model is built toward.
+- **Each campus has its own key.** Auth derives a key per school email domain
+  per month and hands it out with the credential. Everything campus-wide is
+  sealed with it, so schools share relays but never see each other's traffic,
+  and relays can't tell which school a connection belongs to.
 
 ## How the app uses zkRP
 
@@ -58,8 +61,11 @@ directly from the phone:
   gRPC and connects, tracking connection state in the UI.
 - **Broadcast and discovery** happen over the zkRP ghost protocol on a shared
   topic.
-- **Matches and chats** use zkRP mailboxes for store-and-forward, so a message
-  reaches someone whose phone is offline and is delivered on reconnect.
+- **Campus traffic** (`rust/ios/src/campus.rs`): one broadcast topic per
+  month and a daily-rotating inbox per account, all sealed with the campus key.
+- **Matches and chats** use rotating zkRP mailbox topics
+  (`rust/ios/src/conversation.rs`). Messages go out live and are also left in
+  the relay's mailbox store, fetched on reconnect, for up to 7 days.
 - **Parties** are shared mailboxes for an event: everyone at a party registers,
   and a party update reaches all of them at once.
 

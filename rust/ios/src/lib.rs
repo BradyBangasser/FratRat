@@ -1,6 +1,9 @@
 mod algorithm;
+pub mod campus;
+pub mod conversation;
 pub mod likes;
 
+use crate::campus::To;
 use crate::likes::{
     CONTENT_TYPE_LIKE, CONTENT_TYPE_LIKE_BACK, CONTENT_TYPE_LIKE_DECLINED, LikeBackPayload,
     LikePayload,
@@ -11,6 +14,7 @@ use libghost::context::{SwarmCommand, ZRPContext, ZRPHandle};
 use libghost::handler::{ConnectionStatus, EventHandler, ZRPEvent};
 use libghost::identity::NodeIdentity as CoreIdentity;
 use libghost::relay::RelayClient;
+use libghost::sealed::Seals;
 use libghost::store::{GhostStore, SqliteStore};
 use libghost::transport::TransportConfig as CoreConfig;
 use std::sync::Once;
@@ -103,6 +107,8 @@ pub enum MeshError {
     BlobError { msg: String },
     #[error("{msg}")]
     EnrollError { msg: String },
+    #[error("verify your school email to use the network")]
+    NotVerified,
     #[error("Unknown error")]
     Unknown,
 }
@@ -565,6 +571,8 @@ pub fn clear_all_caches() {
         RELATIONSHIP_PREFIX,
         "fratrat/pending_like/",
         "fratrat/pending_invite/",
+        conversation::CONVERSATION_KEY_PREFIX,
+        conversation::MAILBOX_STATE_PREFIX,
         PROFILE_STORE_KEY, // own profile — will be re-set on next save
     ];
     for prefix in prefixes {
@@ -575,6 +583,17 @@ pub fn clear_all_caches() {
     // PROFILE_STORE_KEY is an exact key, not a prefix — delete directly
     store.delete(PROFILE_STORE_KEY);
     tracing::info!("clear_all_caches: done");
+}
+
+/// Erase everything this device holds: account identity, credential,
+/// conversation keys and caches. The next launch is a new, unenrolled device.
+#[uniffi::export]
+pub fn delete_all_local_data() {
+    let store = store();
+    for key in store.list("") {
+        store.delete(&key);
+    }
+    tracing::info!("delete_all_local_data: done");
 }
 
 /// Tracks the relationship between us and a specific peer.
@@ -717,9 +736,6 @@ pub trait SwiftEventHandler: Send + Sync {
     // ── Alert callbacks ──────────────────────────────────────────────
     fn on_alert_received(&self, alert: AlertProfile);
     fn on_alerts_backfilled(&self, alerts: Vec<AlertProfile>);
-    // ── Message callbacks ────────────────────────────────────────────
-    fn on_message_received(&self, message: StoredMessage);
-    fn on_messages_backfilled(&self, messages: Vec<StoredMessage>);
     // ── Like callbacks ───────────────────────────────────────────────
     fn on_like_received(&self, payload: LikePayload);
     fn on_like_back_received(&self, payload: LikeBackPayload);
@@ -733,6 +749,7 @@ pub trait SwiftEventHandler: Send + Sync {
 #[derive(Clone)]
 struct SwiftHandlerBridge {
     inner: Arc<dyn SwiftEventHandler>,
+    seals: Arc<Seals>,
     profile: Arc<std::sync::Mutex<PeerProfile>>,
     store: Arc<dyn GhostStore>,
 }
@@ -753,7 +770,10 @@ impl EventHandler for SwiftHandlerBridge {
                 // 2. Persist to our SQLite cache
                 // 3. Reply with our own profile via DM topic
                 CONTENT_TYPE_PROFILE => {
-                    if let Ok(profile) = postcard::from_bytes::<PeerProfile>(payload) {
+                    // Only the account itself may announce its profile.
+                    if let Ok(profile) = postcard::from_bytes::<PeerProfile>(payload)
+                        && profile.peer_id == peer_id.to_string()
+                    {
                         // Persist to cache
                         if let Ok(bytes) = postcard::to_allocvec(&profile) {
                             self.store.set(&peer_profile_key(&profile.peer_id), bytes);
@@ -763,7 +783,11 @@ impl EventHandler for SwiftHandlerBridge {
                         // Reply with our profile
                         let our_profile = self.profile.lock().unwrap().clone();
                         let reply_payload = postcard::to_allocvec(&our_profile).unwrap_or_default();
-                        let reply_topic = format!("fratrat/v1/profiles/dm/{}", peer_id);
+                        let Some(reply_topic) =
+                            campus::topic(&self.seals, To::Inbox(&peer_id.to_string()))
+                        else {
+                            return true;
+                        };
                         tokio::spawn(async move {
                             ZRPHandle::send_typed(
                                 tx,
@@ -779,7 +803,9 @@ impl EventHandler for SwiftHandlerBridge {
                 // ── Direct profile reply ─────────────────────────────────
                 // Response to our announcement — just store and notify.
                 CONTENT_TYPE_PROFILE_REPLY => {
-                    if let Ok(profile) = postcard::from_bytes::<PeerProfile>(payload) {
+                    if let Ok(profile) = postcard::from_bytes::<PeerProfile>(payload)
+                        && profile.peer_id == peer_id.to_string()
+                    {
                         if let Ok(bytes) = postcard::to_allocvec(&profile) {
                             self.store.set(&peer_profile_key(&profile.peer_id), bytes);
                         }
@@ -897,53 +923,16 @@ impl EventHandler for SwiftHandlerBridge {
                     }
                 }
 
-                // ── Chat message ─────────────────────────────────────────
-                // Persist immediately so it survives app restarts, then
-                // notify Swift. Dedup by message_id on the Swift side.
-                CONTENT_TYPE_MESSAGE => {
-                    if let Ok(msg) = postcard::from_bytes::<StoredMessage>(payload) {
-                        let key = message_key(&msg.conversation_id, &msg.message_id);
-                        if self.store.get(&key).is_none()
-                            && let Ok(bytes) = postcard::to_allocvec(&msg)
-                        {
-                            self.store.set(&key, bytes);
-                        }
-                        self.inner.on_message_received(msg);
-                    }
-                }
-
-                // ── Message backfill ─────────────────────────────────────
-                // Batch of messages the peer missed while offline.
-                // Only store messages we haven't seen before.
-                CONTENT_TYPE_MESSAGE_BACKFILL => {
-                    if let Ok(msgs) = postcard::from_bytes::<Vec<StoredMessage>>(payload) {
-                        let new_msgs: Vec<StoredMessage> = msgs
-                            .into_iter()
-                            .filter(|msg| {
-                                let key = message_key(&msg.conversation_id, &msg.message_id);
-                                if self.store.get(&key).is_none() {
-                                    if let Ok(bytes) = postcard::to_allocvec(msg) {
-                                        self.store.set(&key, bytes);
-                                    }
-                                    true
-                                } else {
-                                    false
-                                }
-                            })
-                            .collect();
-                        if !new_msgs.is_empty() {
-                            self.inner.on_messages_backfilled(new_msgs);
-                        }
-                    }
-                }
-
                 // ── Like received ─────────────────────────────────────────
                 // Store relationship state as LikedBy so we know to
                 // show an incoming like notification and can later
                 // match or decline. The encrypted key stays in the
                 // relationship record until the user acts on it.
                 CONTENT_TYPE_LIKE => {
-                    if let Ok(like) = postcard::from_bytes::<LikePayload>(payload) {
+                    if let Ok(mut like) = postcard::from_bytes::<LikePayload>(payload) {
+                        // Who sent it is the account that signed it, not
+                        // whatever the payload claims.
+                        like.sender_peer_id = peer_id.to_string();
                         let existing = self
                             .store
                             .get(&relationship_key(&like.sender_peer_id))
@@ -970,7 +959,9 @@ impl EventHandler for SwiftHandlerBridge {
                 }
 
                 CONTENT_TYPE_LIKE_BACK => {
-                    if let Ok(payload_inner) = postcard::from_bytes::<LikeBackPayload>(payload) {
+                    if let Ok(mut payload_inner) = postcard::from_bytes::<LikeBackPayload>(payload)
+                    {
+                        payload_inner.sender_peer_id = peer_id.to_string();
                         self.store.delete(&format!(
                             "fratrat/pending_like/{}",
                             payload_inner.sender_peer_id
@@ -999,7 +990,8 @@ impl EventHandler for SwiftHandlerBridge {
                 // Store as InviteReceived — Swift shows an incoming
                 // invite notification with Accept / Decline.
                 CONTENT_TYPE_INVITE => {
-                    if let Ok(invite) = postcard::from_bytes::<InvitePayload>(payload) {
+                    if let Ok(mut invite) = postcard::from_bytes::<InvitePayload>(payload) {
+                        invite.sender_peer_id = peer_id.to_string();
                         let state = RelationshipState::InviteReceived {
                             conversation_id: invite.conversation_id.clone(),
                             from_name: invite.sender_name.clone(),
@@ -1016,7 +1008,8 @@ impl EventHandler for SwiftHandlerBridge {
                 // ── Invite accepted ───────────────────────────────────────
                 // Update our InviteSent state to InviteAccepted.
                 CONTENT_TYPE_INVITE_ACCEPT => {
-                    if let Ok(accept) = postcard::from_bytes::<InviteAcceptPayload>(payload) {
+                    if let Ok(mut accept) = postcard::from_bytes::<InviteAcceptPayload>(payload) {
+                        accept.acceptor_peer_id = peer_id.to_string();
                         let state = RelationshipState::InviteAccepted {
                             conversation_id: accept.conversation_id.clone(),
                         };
@@ -1055,6 +1048,12 @@ impl EventHandler for SwiftHandlerBridge {
                 let store = Arc::clone(&self.store);
                 let peer_id_str = peer_id.to_string();
                 let tx_clone = tx.clone();
+                let (Some(campus_topic), Some(inbox_topic)) = (
+                    campus::topic(&self.seals, To::Campus),
+                    campus::topic(&self.seals, To::Inbox(&peer_id_str)),
+                ) else {
+                    return true;
+                };
 
                 tokio::spawn(async move {
                     let last_seen = store
@@ -1067,7 +1066,7 @@ impl EventHandler for SwiftHandlerBridge {
                     let profile_payload = postcard::to_allocvec(&our_profile).unwrap_or_default();
                     ZRPHandle::send_typed(
                         tx_clone.clone(),
-                        "fratrat/v1/profiles".to_string(),
+                        campus_topic,
                         profile_payload,
                         CONTENT_TYPE_PROFILE,
                     )
@@ -1093,7 +1092,7 @@ impl EventHandler for SwiftHandlerBridge {
                         let payload = postcard::to_allocvec(&missed_profiles).unwrap_or_default();
                         ZRPHandle::send_typed(
                             tx_clone.clone(),
-                            format!("fratrat/v1/profiles/dm/{}", peer_id_str),
+                            inbox_topic.clone(),
                             payload,
                             CONTENT_TYPE_PROFILE_BACKFILL,
                         )
@@ -1119,7 +1118,7 @@ impl EventHandler for SwiftHandlerBridge {
                         let payload = postcard::to_allocvec(&missed_parties).unwrap_or_default();
                         ZRPHandle::send_typed(
                             tx_clone.clone(),
-                            format!("fratrat/v1/parties/dm/{}", peer_id_str),
+                            inbox_topic.clone(),
                             payload,
                             CONTENT_TYPE_PARTY_BACKFILL,
                         )
@@ -1145,38 +1144,9 @@ impl EventHandler for SwiftHandlerBridge {
                         let payload = postcard::to_allocvec(&missed_alerts).unwrap_or_default();
                         ZRPHandle::send_typed(
                             tx_clone.clone(),
-                            format!("fratrat/v1/alerts/dm/{}", peer_id_str),
+                            inbox_topic.clone(),
                             payload,
                             CONTENT_TYPE_ALERT_BACKFILL,
-                        )
-                        .await;
-                    }
-
-                    // 5. Backfill messages from our shared conversation
-                    //    that the peer missed while offline.
-                    //    We only have access to messages where we were
-                    //    one of the parties — use peer_id as conversation_id.
-                    let missed_messages: Vec<StoredMessage> = store
-                        .list(&message_prefix(&peer_id_str))
-                        .into_iter()
-                        .filter_map(|key| store.get(&key))
-                        .filter_map(|bytes| postcard::from_bytes::<StoredMessage>(&bytes).ok())
-                        .filter(|m| m.timestamp > last_seen)
-                        .collect();
-
-                    if !missed_messages.is_empty() {
-                        tracing::info!(
-                            "backfilling {} messages to {} (last seen: {})",
-                            missed_messages.len(),
-                            peer_id_str,
-                            last_seen
-                        );
-                        let payload = postcard::to_allocvec(&missed_messages).unwrap_or_default();
-                        ZRPHandle::send_typed(
-                            tx_clone.clone(),
-                            format!("fratrat/v1/dm/{}", peer_id_str),
-                            payload,
-                            CONTENT_TYPE_MESSAGE_BACKFILL,
                         )
                         .await;
                     }
@@ -1188,7 +1158,7 @@ impl EventHandler for SwiftHandlerBridge {
                         tracing::info!("re-sending pending like to {}", peer_id_str);
                         ZRPHandle::send_typed(
                             tx_clone.clone(),
-                            format!("fratrat/v1/dm/{}", peer_id_str),
+                            inbox_topic.clone(),
                             like_bytes,
                             CONTENT_TYPE_LIKE,
                         )
@@ -1200,7 +1170,7 @@ impl EventHandler for SwiftHandlerBridge {
                         tracing::info!("re-sending pending invite to {}", peer_id_str);
                         ZRPHandle::send_typed(
                             tx_clone,
-                            format!("fratrat/v1/dm/{}", peer_id_str),
+                            inbox_topic.clone(),
                             inv_bytes,
                             CONTENT_TYPE_INVITE,
                         )
@@ -1334,6 +1304,10 @@ impl TransportConfig {
 #[derive(uniffi::Object)]
 pub struct MeshNode {
     handle: Mutex<Option<ZRPHandle>>,
+    /// Our account, whose inbox we watch.
+    me: String,
+    /// Campus topics currently watched (see `refresh_campus`).
+    campus: std::sync::Mutex<std::collections::HashSet<String>>,
 }
 
 #[uniffi::export]
@@ -1356,16 +1330,21 @@ impl MeshNode {
         let core_config = CoreConfig::with_ports(config.inner.tcp_port, config.inner.quic_port);
 
         let store = store();
-
-        let bridge = SwiftHandlerBridge {
-            inner: Arc::from(handler),
-            profile: Arc::new(std::sync::Mutex::new(profile)),
-            store: Arc::clone(&store),
-        };
+        let profile = Arc::new(std::sync::Mutex::new(profile));
+        let inner: Arc<dyn SwiftEventHandler> = Arc::from(handler);
 
         let handle = get_runtime()
             .spawn(async move {
                 let mut ctx = ZRPContext::with_store(Arc::clone(&store));
+                // Nothing in the clear: every message names its account, so
+                // all of it travels on sealed topics (see campus.rs).
+                ctx.seals().require(true);
+                let bridge = SwiftHandlerBridge {
+                    inner,
+                    seals: ctx.seals(),
+                    profile,
+                    store: Arc::clone(&store),
+                };
                 ctx.register_handler("swift", bridge).await;
 
                 ctx.start(
@@ -1382,73 +1361,68 @@ impl MeshNode {
             .map_err(|_| MeshError::Unknown)?
             .map_err(|e| MeshError::ConnectionError { msg: e })?;
 
-        let my_peer_id = identity.peer_id_string();
-        let setup_handle = handle.clone();
-
-        get_runtime()
-            .spawn(async move {
-                setup_handle
-                    .subscribe(format!("fratrat/v1/profiles/dm/{}", my_peer_id))
-                    .await;
-                setup_handle
-                    .subscribe(format!("fratrat/v1/parties/dm/{}", my_peer_id))
-                    .await;
-                setup_handle
-                    .subscribe(format!("fratrat/v1/alerts/dm/{}", my_peer_id))
-                    .await;
-                setup_handle
-                    .subscribe(format!("fratrat/v1/dm/{}", my_peer_id))
-                    .await;
-                setup_handle
-                    .subscribe("fratrat/v1/profiles".to_string())
-                    .await;
-                setup_handle
-                    .subscribe("fratrat/v1/parties".to_string())
-                    .await;
-                setup_handle
-                    .subscribe("fratrat/v1/alerts".to_string())
-                    .await;
-            })
-            .await
-            .map_err(|_| MeshError::Unknown)?;
-
-        Ok(Self {
+        let node = Self {
             handle: Mutex::new(Some(handle)),
-        })
+            me: identity.peer_id_string(),
+            campus: Default::default(),
+        };
+        node.refresh_campus().await;
+        Ok(node)
+    }
+
+    // MARK: - Topics
+
+    /// Watch the current campus topics and drop ones that rotated out. Runs
+    /// on connect; call it again about hourly (inboxes rotate daily) and
+    /// after re-verifying.
+    pub async fn refresh_campus(&self) {
+        let guard = self.handle.lock().await;
+        let Some(h) = guard.as_ref() else { return };
+        let wanted = campus::listening(&self.me);
+        let topics: std::collections::HashSet<String> =
+            wanted.iter().map(|(t, _)| t.clone()).collect();
+        let old = std::mem::replace(&mut *self.campus.lock().unwrap(), topics.clone());
+        for topic in old.difference(&topics) {
+            h.unsubscribe_sealed(topic.clone()).await;
+        }
+        for (topic, key) in wanted {
+            if !old.contains(&topic) {
+                h.subscribe_sealed(topic, key).await;
+            }
+        }
+        h.seals().set_hello_topics(campus::broadcasts());
+    }
+
+    /// Watch a sealed topic (a conversation mailbox) under `key`.
+    pub async fn subscribe_sealed(&self, topic: String, key: Vec<u8>) -> Result<(), MeshError> {
+        let key: [u8; 32] = key.try_into().map_err(|_| MeshError::ConnectionError {
+            msg: "topic key must be 32 bytes".into(),
+        })?;
+        match self.handle.lock().await.as_ref() {
+            Some(h) => {
+                h.subscribe_sealed(topic, key).await;
+                Ok(())
+            }
+            None => Err(MeshError::ConnectionFailed),
+        }
+    }
+
+    pub async fn unsubscribe_sealed(&self, topic: String) -> Result<(), MeshError> {
+        match self.handle.lock().await.as_ref() {
+            Some(h) => {
+                h.unsubscribe_sealed(topic).await;
+                Ok(())
+            }
+            None => Err(MeshError::ConnectionFailed),
+        }
     }
 
     // MARK: - Messaging
 
-    pub async fn subscribe(&self, topic: String) -> Result<(), MeshError> {
-        if let Some(h) = self.handle.lock().await.as_ref() {
-            h.subscribe(topic).await;
-            Ok(())
-        } else {
-            Err(MeshError::ConnectionFailed)
-        }
-    }
-
-    pub async fn send_message(&self, topic: String, text: String) -> Result<(), MeshError> {
-        if let Some(h) = self.handle.lock().await.as_ref() {
-            h.publish(topic, text.into_bytes()).await;
-            Ok(())
-        } else {
-            Err(MeshError::ConnectionFailed)
-        }
-    }
-
+    /// Publish on a topic this node watches sealed (a conversation mailbox).
     pub async fn send_raw(&self, topic: String, payload: Vec<u8>) -> Result<(), MeshError> {
         if let Some(h) = self.handle.lock().await.as_ref() {
             h.publish(topic, payload).await;
-            Ok(())
-        } else {
-            Err(MeshError::ConnectionFailed)
-        }
-    }
-
-    pub async fn unsubscribe(&self, topic: String) -> Result<(), MeshError> {
-        if let Some(h) = self.handle.lock().await.as_ref() {
-            h.unsubscribe(topic).await;
             Ok(())
         } else {
             Err(MeshError::ConnectionFailed)
@@ -1461,12 +1435,8 @@ impl MeshNode {
         if let Some(h) = self.handle.lock().await.as_ref() {
             let bytes = postcard::to_allocvec(&profile)
                 .map_err(|e| MeshError::ConnectionError { msg: e.to_string() })?;
-            h.publish_typed(
-                "fratrat/v1/profiles".to_string(),
-                bytes,
-                CONTENT_TYPE_PROFILE,
-            )
-            .await;
+            let topic = campus::topic(h.seals(), To::Campus).ok_or(MeshError::NotVerified)?;
+            h.publish_typed(topic, bytes, CONTENT_TYPE_PROFILE).await;
             Ok(())
         } else {
             Err(MeshError::ConnectionFailed)
@@ -1481,7 +1451,8 @@ impl MeshNode {
         if let Some(h) = self.handle.lock().await.as_ref() {
             let bytes = postcard::to_allocvec(&profile)
                 .map_err(|e| MeshError::ConnectionError { msg: e.to_string() })?;
-            let topic = format!("fratrat/v1/profiles/dm/{}", to_peer_id);
+            let topic =
+                campus::topic(h.seals(), To::Inbox(&to_peer_id)).ok_or(MeshError::NotVerified)?;
             h.publish_typed(topic, bytes, CONTENT_TYPE_PROFILE_REPLY)
                 .await;
             Ok(())
@@ -1500,8 +1471,8 @@ impl MeshNode {
             if let Ok(b) = postcard::to_allocvec(&party) {
                 store().set(&party_key(party.id), b);
             }
-            h.publish_typed("fratrat/v1/parties".to_string(), bytes, CONTENT_TYPE_PARTY)
-                .await;
+            let topic = campus::topic(h.seals(), To::Campus).ok_or(MeshError::NotVerified)?;
+            h.publish_typed(topic, bytes, CONTENT_TYPE_PARTY).await;
             Ok(())
         } else {
             Err(MeshError::ConnectionFailed)
@@ -1516,8 +1487,8 @@ impl MeshNode {
             if let Ok(b) = postcard::to_allocvec(&alert) {
                 store().set(&alert_key(alert.id), b);
             }
-            h.publish_typed("fratrat/v1/alerts".to_string(), bytes, CONTENT_TYPE_ALERT)
-                .await;
+            let topic = campus::topic(h.seals(), To::Campus).ok_or(MeshError::NotVerified)?;
+            h.publish_typed(topic, bytes, CONTENT_TYPE_ALERT).await;
             Ok(())
         } else {
             Err(MeshError::ConnectionFailed)
@@ -1545,7 +1516,7 @@ impl MeshNode {
                 store().set(&relationship_key(&to_peer_id), sb);
             }
             h.publish_typed(
-                format!("fratrat/v1/dm/{}", to_peer_id),
+                campus::topic(h.seals(), To::Inbox(&to_peer_id)).ok_or(MeshError::NotVerified)?,
                 bytes,
                 CONTENT_TYPE_LIKE,
             )
@@ -1571,7 +1542,7 @@ impl MeshNode {
                 store().set(&relationship_key(&to_peer_id), sb);
             }
             h.publish_typed(
-                format!("fratrat/v1/dm/{}", to_peer_id),
+                campus::topic(h.seals(), To::Inbox(&to_peer_id)).ok_or(MeshError::NotVerified)?,
                 bytes,
                 CONTENT_TYPE_LIKE_BACK,
             )
@@ -1589,7 +1560,7 @@ impl MeshNode {
                 store().set(&relationship_key(&to_peer_id), sb);
             }
             h.publish_typed(
-                format!("fratrat/v1/dm/{}", to_peer_id),
+                campus::topic(h.seals(), To::Inbox(&to_peer_id)).ok_or(MeshError::NotVerified)?,
                 vec![],
                 CONTENT_TYPE_LIKE_DECLINED,
             )
@@ -1619,7 +1590,7 @@ impl MeshNode {
                 store().set(&relationship_key(&to_peer_id), sb);
             }
             h.publish_typed(
-                format!("fratrat/v1/dm/{}", to_peer_id),
+                campus::topic(h.seals(), To::Inbox(&to_peer_id)).ok_or(MeshError::NotVerified)?,
                 bytes,
                 CONTENT_TYPE_INVITE,
             )
@@ -1645,7 +1616,7 @@ impl MeshNode {
                 store().set(&relationship_key(&to_peer_id), sb);
             }
             h.publish_typed(
-                format!("fratrat/v1/dm/{}", to_peer_id),
+                campus::topic(h.seals(), To::Inbox(&to_peer_id)).ok_or(MeshError::NotVerified)?,
                 bytes,
                 CONTENT_TYPE_INVITE_ACCEPT,
             )
@@ -1664,7 +1635,7 @@ impl MeshNode {
             }
             store().delete(&format!("fratrat/pending_invite/{}", to_peer_id));
             h.publish_typed(
-                format!("fratrat/v1/dm/{}", to_peer_id),
+                campus::topic(h.seals(), To::Inbox(&to_peer_id)).ok_or(MeshError::NotVerified)?,
                 vec![],
                 CONTENT_TYPE_INVITE_DECLINE,
             )

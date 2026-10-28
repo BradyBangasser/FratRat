@@ -11,13 +11,13 @@ struct UserProfile: Equatable {
     var college:             String = ""
     var year:                String = ""
     var bio:                 String = ""
-    var email:               String = ""
     var photoURLs:           [String] = [] // CloudFront URLs — parallel to photoKeys
     var photoKeys:           [Data]   = [] // per-photo ChaCha20 symmetric keys
     var localPhotoFilenames: [String] = [] // on-device JPEG filenames
 
     private static let localPhotosKey = "fratrat.localPhotoFilenames"
-    private static let emailKey       = "fratrat.userEmail"
+    /// Older builds kept the enrollment email here; only ever deleted now.
+    private static let legacyEmailKey = "fratrat.userEmail"
 
     // MARK: - Load from SQLite
 
@@ -35,7 +35,7 @@ struct UserProfile: Equatable {
 
         profile.localPhotoFilenames = UserDefaults.standard
             .stringArray(forKey: localPhotosKey) ?? []
-        profile.email = UserDefaults.standard.string(forKey: emailKey) ?? ""
+        UserDefaults.standard.removeObject(forKey: legacyEmailKey)
 
         return profile
     }
@@ -57,7 +57,14 @@ struct UserProfile: Equatable {
         if !ok { print("[UserProfile] SQLite save failed") }
 
         UserDefaults.standard.set(localPhotoFilenames, forKey: Self.localPhotosKey)
-        UserDefaults.standard.set(email, forKey: Self.emailKey)
+    }
+
+    /// Forget the on-device profile and photos (the Rust store is wiped
+    /// separately by deleteAllLocalData()).
+    static func deleteLocal() {
+        UserDefaults.standard.removeObject(forKey: localPhotosKey)
+        UserDefaults.standard.removeObject(forKey: legacyEmailKey)
+        ImageStore.deleteAll()
     }
 
     // MARK: - Computed
@@ -138,6 +145,11 @@ struct ImageStore {
         return try? Data(contentsOf: url)
     }
 
+    /// Delete every saved photo.
+    static func deleteAll() {
+        try? FileManager.default.removeItem(at: directory)
+    }
+
     /// Delete a saved photo from disk.
     static func delete(_ filename: String) {
         let url = directory.appendingPathComponent(filename)
@@ -150,7 +162,6 @@ struct ImageStore {
 struct AppSettings: Codable {
     var appearance:     AppearanceMode = .system
     var maxDistanceKm:  Double         = 50
-    var blockedPeerIds: [String]       = []
 
     var darkMode: Bool {
         get { appearance == .dark }

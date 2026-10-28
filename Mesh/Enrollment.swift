@@ -43,13 +43,18 @@ final class Enrollment: ObservableObject {
     /// Re-verify a few days early so relays never start dropping us mid-use.
     static let renewalWindow: TimeInterval = 3 * 24 * 60 * 60
 
+    /// The school's key for this epoch, which everything on the network is
+    /// sealed with. Credentials from before campus keys existed lack it.
+    @Published private(set) var hasCampusKey: Bool = FratRat.hasCampusKey()
+
     var needsRenewal: Bool {
         guard isEnrolled, let expiresAt else { return !isEnrolled }
-        return expiresAt.timeIntervalSinceNow < Self.renewalWindow
+        return !hasCampusKey || expiresAt.timeIntervalSinceNow < Self.renewalWindow
     }
 
     /// Re-read credential state (call when the app becomes active).
     func refresh() {
+        hasCampusKey = FratRat.hasCampusKey()
         isEnrolled = hasCredential()
         expiresAt = credentialExpiresAt().map { Date(timeIntervalSince1970: TimeInterval($0)) }
     }

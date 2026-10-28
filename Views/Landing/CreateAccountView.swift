@@ -4,17 +4,15 @@
 //
 
 import SwiftUI
-import AuthenticationServices
 
 // MARK: - CreateAccountView
-// First step of onboarding — Sign in with Apple + age attestation.
-// On success, navigates to EduVerificationView.
+// First step of onboarding — age attestation, then EduVerificationView.
+// There is deliberately no third-party sign-in: the .edu email check is the
+// only identity step, and the auth service keeps no record of it.
 struct CreateAccountView: View {
     @EnvironmentObject var mesh: MeshManager
     @Environment(\.dismiss) private var dismiss
     @State private var ageConfirmed = false
-    @State private var signingIn = false
-    @State private var errorMessage: String?
     @State private var navigateToEdu = false
 
     var onOnboardingComplete: () -> Void = {}
@@ -64,7 +62,7 @@ struct CreateAccountView: View {
                         .font(.system(size: 28, weight: .black))
                         .foregroundColor(.fratDark)
                         .multilineTextAlignment(.center)
-                    Text("Sign in to get started. You'll verify\nyour .edu email next.")
+                    Text("Next you'll verify your .edu email.\nIt's never stored or linked to you.")
                         .font(.fratBody(15))
                         .foregroundColor(.fratGray)
                         .multilineTextAlignment(.center)
@@ -99,7 +97,7 @@ struct CreateAccountView: View {
                         }
                         .padding(.top, 2)
 
-                        Text("I am 17 years of age or older and currently enrolled at a college or university.")
+                        Text("I am 18 years of age or older and currently enrolled at a college or university.")
                             .font(.fratBody(14))
                             .foregroundColor(.fratDark)
                             .multilineTextAlignment(.leading)
@@ -114,42 +112,19 @@ struct CreateAccountView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 16)
 
-                // ── Error message ────────────────────────────────────────
-                if let errorMessage {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.circle.fill")
-                            .font(.system(size: 13))
-                            .foregroundColor(.red)
-                        Text(errorMessage)
-                            .font(.fratBody(13))
-                            .foregroundColor(.red)
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 8)
-                    .transition(.opacity)
-                }
-
-                // ── Sign in with Apple ───────────────────────────────────
-                SignInWithAppleButtonView(
-                    isEnabled: ageConfirmed && !signingIn,
-                    isLoading: signingIn
-                ) { result in
-                    handleAppleSignIn(result)
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 10)
-
-                // ── Dev skip (remove before App Store submission) ────────
+                // ── Continue ─────────────────────────────────────────────
                 Button {
                     navigateToEdu = true
                 } label: {
-                    Text("Skip sign-in (dev only)")
-                        .font(.fratSemi(14))
+                    Text("Continue")
+                        .font(.fratBold(17))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.orange))
+                        .padding(.vertical, 18)
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.fratPink))
                 }
+                .disabled(!ageConfirmed)
+                .opacity(ageConfirmed ? 1 : 0.4)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 10)
 
@@ -173,60 +148,6 @@ struct CreateAccountView: View {
         .navigationDestination(isPresented: $navigateToEdu) {
             EduVerificationView(onOnboardingComplete: onOnboardingComplete)
                 .environmentObject(mesh)
-        }
-    }
-
-    private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) {
-        switch result {
-        case .success:
-            signingIn = true
-            errorMessage = nil
-            // Simulate brief sign-in delay for UX feedback
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                signingIn = false
-                navigateToEdu = true
-            }
-
-        case .failure(let error):
-            signingIn = false
-            let nsError = error as NSError
-            // User cancelled — don't show an error
-            if nsError.code == ASAuthorizationError.canceled.rawValue {
-                return
-            }
-            errorMessage = "Sign in failed. Please try again."
-        }
-    }
-}
-
-// MARK: - Sign in with Apple button wrapper
-private struct SignInWithAppleButtonView: View {
-    let isEnabled: Bool
-    let isLoading: Bool
-    let onCompletion: (Result<ASAuthorization, Error>) -> Void
-
-    var body: some View {
-        ZStack {
-            SignInWithAppleButton(
-                .signIn,
-                onRequest: { request in
-                    request.requestedScopes = [.fullName, .email]
-                },
-                onCompletion: onCompletion
-            )
-            .signInWithAppleButtonStyle(.black)
-            .frame(height: 54)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .disabled(!isEnabled)
-            .opacity(isEnabled ? 1 : 0.4)
-
-            if isLoading {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.black.opacity(0.85))
-                    .frame(height: 54)
-                ProgressView()
-                    .tint(.white)
-            }
         }
     }
 }

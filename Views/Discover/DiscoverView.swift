@@ -33,7 +33,14 @@ struct DiscoverView: View {
     @State private var dragOffset:    CGSize = .zero
     @State private var showDieUpSheet = false
     @State private var dieUpStats    = (liked: 0, matched: 0)
-    @State private var passedPeerIds: Set<String> = []
+    @State private var passedPeerIds: Set<String> =
+        Set(UserDefaults.standard.stringArray(forKey: DiscoverView.passedKey) ?? [])
+
+    /// Profiles passed on stay passed across launches (until Refresh).
+    static let passedKey = "fratrat.passedPeerIds"
+
+    /// Ranking puts people at your own college first.
+    @State private var myCollege = UserProfile.load().college
 
     // Die Up animation state
     @State private var dieUpBatch:      [SwipeProfile] = []
@@ -48,6 +55,7 @@ struct DiscoverView: View {
         guard peerId != mesh.myPeerId else { return false }
         guard peerId != mesh.selectedRelay?.peerId else { return false }
         guard !passedPeerIds.contains(peerId) else { return false }
+        guard !mesh.blockedPeerIds.contains(peerId) else { return false }
         switch mesh.relationships[peerId] {
         case .liked, .likedBy, .matched,
              .inviteSent, .inviteReceived, .inviteAccepted, .declined:
@@ -58,8 +66,8 @@ struct DiscoverView: View {
     }
 
     private var profiles: [SwipeProfile] {
-        mesh.peerProfiles.values
-            .filter { shouldShow($0.peerId) }
+        let candidates = mesh.peerProfiles.values.filter { shouldShow($0.peerId) }
+        return rankProfiles(myCollege: myCollege, profiles: Array(candidates))
             .map { p in
                 SwipeProfile(
                     name:          p.displayName,
@@ -71,7 +79,6 @@ struct DiscoverView: View {
                     photoBlobKeys: p.photoBlobKeys
                 )
             }
-            .sorted { $0.name < $1.name }
     }
 
     private var displayProfiles: [SwipeProfile] {
@@ -99,7 +106,7 @@ struct DiscoverView: View {
                             if mesh.connectionState.isConnected {
                                 Circle().fill(Color.green).frame(width: 6, height: 6)
                                     .shadow(color: .green.opacity(0.5), radius: 3)
-                                Text("\(mesh.peerProfiles.count) peer\(mesh.peerProfiles.count == 1 ? "" : "s") nearby")
+                                Text("\(profiles.count) to discover")
                                     .font(.fratBody(14)).foregroundColor(.fratGray)
                             } else {
                                 Image(systemName: "wifi.slash").font(.system(size: 12)).foregroundColor(.fratGray)
@@ -153,6 +160,9 @@ struct DiscoverView: View {
                 }
                 .padding(.bottom, 110).padding(.top, 8)
             }
+        }
+        .onChange(of: passedPeerIds) { _, ids in
+            UserDefaults.standard.set(Array(ids), forKey: Self.passedKey)
         }
         .sheet(isPresented: $showDieUpSheet) {
             DieUpSheet(liked: dieUpStats.liked, matched: dieUpStats.matched, isPresented: $showDieUpSheet)

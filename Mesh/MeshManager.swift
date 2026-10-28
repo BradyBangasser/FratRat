@@ -68,33 +68,222 @@ final class MeshManager: ObservableObject {
     @Published var alerts:          [UInt64: AlertProfile] = [:]
     @Published var conversationMessages: [String: [ChatMessage]] = [:]
     @Published var unreadCounts:    [String: Int] = [:]
-    @Published var inviteConversationIds: Set<String> = []
+    /// The other person in each conversation, by conversation id.
+    @Published var conversationPeers: [String: String] = [:]
     @Published var relationships:   [String: RelationshipState] = [:]
     @Published var pendingLikes:    [String: LikePayload] = [:]
     @Published var pendingInvites:  [String: InvitePayload] = [:]
     @Published var pendingRequestCount: Int = 0
     @Published var banner: BannerEvent?    = nil
     @Published var userLocation: CLLocation? = nil
+    @Published private(set) var blockedPeerIds: Set<String> = MeshManager.loadBlocked()
+    /// Set once deleteAllData() finishes; the app returns to onboarding.
+    @Published var dataDeleted = false
 
     private var node:     MeshNode?
     private var identity: NodeIdentity?
     /// The relay gRPC URL for blob and log calls. Learned from the network
     /// directory in findRelays(); starts at the first bootstrap relay.
     private var grpcAddr: String = ZkrpConfig.bootstrapRelays.first ?? ""
-    private let broadcastTopic = "ghost/broadcast/v1"
-    private let invitePrefix   = "fratrat/v1/invite/"
+    /// Mailbox topic → conversation id, for every topic we watch.
+    private var topicConversations: [String: String] = [:]
+    /// Re-derives conversation mailboxes as they rotate.
+    private var rotationTask: Task<Void, Never>?
+    /// First message a QR-invite joiner sends, carrying their name.
+    static let joinedPrefix = "JOINED:"
 
     init() {}
 
-    // MARK: - Invite conversations
+    // MARK: - Conversations
+    //
+    // Every conversation (a match, an accepted invite, a QR chat) has a key
+    // only its two members hold. Messages are sealed with it and published on
+    // a mailbox topic derived from it that rotates daily, so relays see
+    // neither the text nor who is talking (see rust/ios/src/conversation.rs).
 
-    func isInviteConversation(_ id: String) -> Bool {
-        inviteConversationIds.contains(id)
+    func profile(forConversation id: String) -> PeerProfile? {
+        conversationPeers[id].flatMap { peerProfiles[$0] }
+    }
+
+    /// Remember a conversation's key and start watching its mailbox.
+    @MainActor
+    func openConversation(_ id: String, key: Data, peerId: String?) async {
+        guard saveConversationKey(conversationId: id, key: key) else {
+            Swift.print("[chat] rejected a malformed conversation key")
+            return
+        }
+        if let peerId { conversationPeers[id] = peerId }
+        guard let node,
+              let topics = try? conversationTopics(key: key),
+              let topicKey = try? conversationTopicKey(key: key)
+        else { return }
+        for topic in topics where topicConversations[topic] == nil {
+            topicConversations[topic] = id
+            try? await node.subscribeSealed(topic: topic, key: topicKey)
+        }
+    }
+
+    /// Watch the current mailbox window of every conversation, and the
+    /// current campus topics, dropping topics that rotated out. Mailboxes and
+    /// inboxes rotate daily; campus keys with each credential epoch.
+    @MainActor
+    func refreshConversationSubscriptions() async {
+        guard let node else { return }
+        var wanted: [String: String] = [:]
+        var topicKeys: [String: Data] = [:]
+        for id in loadAllConversationKeyIds() {
+            guard let key = loadConversationKey(conversationId: id),
+                  let topics = try? conversationTopics(key: key),
+                  let topicKey = try? conversationTopicKey(key: key)
+            else { continue }
+            for topic in topics {
+                wanted[topic] = id
+                topicKeys[topic] = topicKey
+            }
+        }
+        for topic in topicConversations.keys where wanted[topic] == nil {
+            try? await node.unsubscribeSealed(topic: topic)
+        }
+        for (topic, topicKey) in topicKeys where topicConversations[topic] == nil {
+            try? await node.subscribeSealed(topic: topic, key: topicKey)
+        }
+        topicConversations = wanted
+        await node.refreshCampus()
+    }
+
+    // MARK: - Blocking
+    //
+    // On this device only: a blocked account's messages, likes and invites
+    // are dropped, they leave Discover, and conversations with them are
+    // deleted along with their keys.
+
+    private static let blockedKey = "fratrat.blockedPeerIds"
+
+    private static func loadBlocked() -> Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: blockedKey) ?? [])
+    }
+
+    private func saveBlocked() {
+        UserDefaults.standard.set(Array(blockedPeerIds), forKey: Self.blockedKey)
     }
 
     @MainActor
-    func registerInviteConversation(_ id: String) {
-        inviteConversationIds.insert(id)
+    func block(_ peerId: String) async {
+        blockedPeerIds.insert(peerId)
+        saveBlocked()
+        relationships[peerId] = .declined
+        _ = saveRelationship(peerId: peerId, state: .declined)
+        pendingLikes.removeValue(forKey: peerId)
+        pendingInvites.removeValue(forKey: peerId)
+        updateRequestCount()
+        for (conversationId, member) in conversationPeers where member == peerId {
+            deleteConversationKey(conversationId: conversationId)
+            deleteConversation(conversationId: conversationId)
+            conversationMessages[conversationId] = nil
+            unreadCounts[conversationId] = nil
+            conversationPeers[conversationId] = nil
+        }
+        await refreshConversationSubscriptions()
+    }
+
+    @MainActor
+    func unblock(_ peerId: String) {
+        blockedPeerIds.remove(peerId)
+        saveBlocked()
+        relationships[peerId] = RelationshipState.none
+        _ = saveRelationship(peerId: peerId, state: .none)
+    }
+
+    // MARK: - Reporting
+
+    enum ReportReason: String, CaseIterable, Identifiable {
+        case harassment    = "Harassment or threats"
+        case inappropriate = "Inappropriate photos or messages"
+        case fake          = "Fake profile or spam"
+        case underage      = "May be under 18"
+        case other         = "Something else"
+
+        var id: String { rawValue }
+    }
+
+    /// What a report carries. Nothing about the reporter: the relay sees an
+    /// anonymous admission, and the moderator sees who was reported and why.
+    private struct Report: Encodable {
+        struct Profile: Encodable {
+            let name, college, year, bio: String
+            let photoUrls: [String]
+            /// So a moderator can see the photos, which are encrypted.
+            let photoKeys: [String]
+        }
+        struct Message: Encodable {
+            let fromReported: Bool
+            let text: String
+            let timestamp: UInt64
+        }
+        let version = 1
+        let reported: String
+        let reason: String
+        let details: String
+        let profile: Profile?
+        let messages: [Message]
+    }
+
+    /// Send a report through the anonymous upload path. The conversation's
+    /// last messages go along only if the reporter chose to include them.
+    /// Returns the report id to quote to support.
+    @MainActor
+    func report(
+        _ peerId: String,
+        reason: ReportReason,
+        details: String,
+        includeMessagesFrom conversationId: String?
+    ) async throws -> String {
+        let profile = peerProfiles[peerId].map {
+            Report.Profile(
+                name: $0.name, college: $0.college, year: $0.year, bio: $0.bio,
+                photoUrls: $0.photoBlobIds,
+                photoKeys: $0.photoBlobKeys.map { $0.base64EncodedString() }
+            )
+        }
+        let recent = conversationId.map { self.messages(for: $0).suffix(20) } ?? []
+        let report = Report(
+            reported: peerId,
+            reason:   reason.rawValue,
+            details:  details,
+            profile:  profile,
+            messages: recent.map {
+                Report.Message(
+                    fromReported: !$0.isOwn,
+                    text:         $0.text,
+                    timestamp:    UInt64($0.timestamp.timeIntervalSince1970)
+                )
+            }
+        )
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        var payload = Data("==== FratRat report ====\n".utf8)
+        payload.append(try encoder.encode(report))
+        return try await uploadDebugLog(data: payload, grpcAddr: grpcAddr)
+    }
+
+    // MARK: - Deleting everything
+
+    /// Erase this device's account: identity, credential, profile, photos,
+    /// conversations and settings. Profiles and photos other people's phones
+    /// already received stay with them until their caches expire.
+    @MainActor
+    func deleteAllData() async {
+        await disconnect()
+        identity = nil
+        myPeerId = nil
+        deleteAllLocalData()
+        UserProfile.deleteLocal()
+        UserDefaults.standard.removeObject(forKey: AppSettings.key)
+        UserDefaults.standard.removeObject(forKey: Self.blockedKey)
+        UserDefaults.standard.removeObject(forKey: DiscoverView.passedKey)
+        blockedPeerIds = []
+        LogCapture.shared.clear()
+        dataDeleted = true
     }
 
     // MARK: - Relay discovery
@@ -155,19 +344,19 @@ final class MeshManager: ObservableObject {
                 profile:   loadCurrentProfile()
             )
 
-            if let peerId = myPeerId {
-                try await node?.subscribe(topic: "fratrat/v1/profiles/dm/\(peerId)")
-                try await node?.subscribe(topic: "fratrat/v1/parties/dm/\(peerId)")
-                try await node?.subscribe(topic: "fratrat/v1/alerts/dm/\(peerId)")
-                try await node?.subscribe(topic: "fratrat/v1/dm/\(peerId)")
-            }
-            try await node?.subscribe(topic: broadcastTopic)
-            try await node?.subscribe(topic: "fratrat/v1/profiles")
-            try await node?.subscribe(topic: "fratrat/v1/parties")
-            try await node?.subscribe(topic: "fratrat/v1/alerts")
-
             connectionState = .connected(relay: relay.displayHost)
             seedFromCache()
+
+            topicConversations = [:]
+            await refreshConversationSubscriptions()
+            await fetchMissedMessages()
+            rotationTask?.cancel()
+            rotationTask = Task { [weak self] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 3_600_000_000_000)
+                    await self?.refreshConversationSubscriptions()
+                }
+            }
 
             // Upload any photos that were saved during offline onboarding
             Task { await retryPendingPhotoUploads() }
@@ -191,8 +380,10 @@ final class MeshManager: ObservableObject {
 
     @MainActor
     func disconnect() async {
+        rotationTask?.cancel()
         await node?.shutdown()
         node            = nil
+        topicConversations = [:]
         connectionState = .disconnected
         peerCount       = 0
         connectedPeers  = [:]
@@ -201,7 +392,7 @@ final class MeshManager: ObservableObject {
         alerts          = [:]
         conversationMessages = [:]
         unreadCounts    = [:]
-        inviteConversationIds = []
+        conversationPeers = [:]
         relationships   = [:]
         pendingLikes    = [:]
         pendingInvites  = [:]
@@ -227,10 +418,21 @@ final class MeshManager: ObservableObject {
             if !stored.isEmpty {
                 conversationMessages[conversationId] = stored.map { ChatMessage(stored: $0) }
             }
+            // QR chats have no relationship record; their peer is whoever wrote.
+            if let other = stored.first(where: { !$0.isOwn })?.senderPeerId {
+                conversationPeers[conversationId] = other
+            }
         }
         for rel in loadAllRelationships() {
+            // A blocked account may have liked us again since; stay declined.
+            guard !blockedPeerIds.contains(rel.peerId) else {
+                relationships[rel.peerId] = .declined
+                continue
+            }
             relationships[rel.peerId] = rel.state
             switch rel.state {
+            case .matched(let cid), .inviteSent(let cid), .inviteAccepted(let cid):
+                conversationPeers[cid] = rel.peerId
             case .likedBy(let enc):
                 pendingLikes[rel.peerId] = LikePayload(
                     conversationKeyEnc: enc,
@@ -250,14 +452,6 @@ final class MeshManager: ObservableObject {
         }
         pendingRequestCount = pendingLikes.count + pendingInvites.count
         Swift.print("[mesh] seeded: \(peerProfiles.count) profiles, \(parties.count) parties, \(alerts.count) alerts, \(conversationMessages.count) conversations, \(relationships.count) relationships")
-    }
-
-    // MARK: - Topic subscription
-
-    @MainActor
-    func subscribe(topic: String) async throws {
-        guard let node else { return }
-        try await node.subscribe(topic: topic)
     }
 
     // MARK: - Photo encryption helpers
@@ -314,10 +508,10 @@ final class MeshManager: ObservableObject {
     /// gRPC service (streaming UploadDebugLog). Returns the log_id.
     @MainActor
     func uploadLogs(_ data: Data) async throws -> String {
+        // Nothing that identifies the account or the time: the log id the
+        // user reads back to us is the only link.
         let header = """
         ==== FratRat client log ====
-        peer_id: \(myPeerId ?? "unknown")
-        uploaded: \(ISO8601DateFormatter().string(from: Date()))
         bytes: \(data.count)
         ============================
 
@@ -372,71 +566,68 @@ final class MeshManager: ObservableObject {
 
     // MARK: - Messaging
 
+    /// Encrypt and publish a chat message. Returns false if it couldn't be sent.
     @MainActor
-    func send(_ text: String, topic: String? = nil) async {
-        guard let node, let myPeerId else { return }
-        let t = topic ?? broadcastTopic
-        guard let conversationId = conversationIdFromTopic(t) else { return }
+    @discardableResult
+    func send(_ text: String, conversationId: String) async -> Bool {
+        guard let myPeerId,
+              let msg = await publish(text, conversationId: conversationId, from: myPeerId)
+        else { return false }
+        _ = saveMessage(message: msg.toStored())
+        appendIfNew(msg, to: conversationId)
+        return true
+    }
 
-        let msg = ChatMessage(
-            text:           text,
-            isOwn:          true,
-            conversationId: conversationId,
-            senderPeerId:   myPeerId
-        )
-        let stored = msg.toStored()
-        _ = saveMessage(message: stored)
+    /// Tell a QR-invite's creator who just joined. Not shown as a message.
+    @MainActor
+    func announceJoined(conversationId: String, name: String) async {
+        guard let myPeerId else { return }
+        _ = await publish(Self.joinedPrefix + name, conversationId: conversationId, from: myPeerId)
+    }
 
+    @MainActor
+    private func publish(_ text: String, conversationId: String, from myPeerId: String) async -> ChatMessage? {
+        guard let node, let key = loadConversationKey(conversationId: conversationId) else { return nil }
+        let msg = ChatMessage(text: text, isOwn: true, conversationId: conversationId, senderPeerId: myPeerId)
         do {
-            let payload = try encodeStoredMessage(stored)
-            try await node.sendRaw(topic: t, payload: Data(payload))
-            conversationMessages[conversationId, default: []].append(msg)
-        } catch {}
+            let wire   = try JSONEncoder().encode(WireMessage(msg))
+            let sealed = try sealForConversation(key: key, conversationId: conversationId, plaintext: wire)
+            let topic  = try conversationSendTopic(key: key)
+            try await node.sendRaw(topic: topic, payload: sealed)
+            // Also leave it on the relay for when they're offline. The live
+            // copy is already out, so a failed deposit doesn't fail the send.
+            let grpcAddr = self.grpcAddr
+            Task.detached {
+                do {
+                    try await depositForConversation(grpcAddr: grpcAddr, key: key, sealed: sealed)
+                } catch {
+                    Swift.print("[chat] deposit failed: \(error)")
+                }
+            }
+            return msg
+        } catch {
+            Swift.print("[chat] send failed: \(error)")
+            return nil
+        }
     }
 
-    private func encodeStoredMessage(_ msg: StoredMessage) throws -> [UInt8] {
-        let data = try JSONEncoder().encode(WireMessage(stored: msg))
-        return [UInt8](data)
-    }
-
+    /// What travels, sealed, in a conversation. Live messages are attributed
+    /// to the account that signed them. Messages fetched from a relay mailbox
+    /// carry no signature, so `from` (sealed, so only a key holder can set it)
+    /// stands in, and only where the conversation's member is already known
+    /// or this is how we learn it.
     private struct WireMessage: Codable {
-        let messageId:      String
-        let conversationId: String
-        let senderPeerId:   String
-        let text:           String
-        let timestamp:      UInt64
-        let isOwn:          Bool
+        let messageId: String
+        let text:      String
+        let timestamp: UInt64
+        let from:      String?
 
-        init(stored: StoredMessage) {
-            messageId      = stored.messageId
-            conversationId = stored.conversationId
-            senderPeerId   = stored.senderPeerId
-            text           = stored.text
-            timestamp      = stored.timestamp
-            isOwn          = stored.isOwn
+        init(_ msg: ChatMessage) {
+            messageId = msg.id
+            text      = msg.text
+            timestamp = UInt64(msg.timestamp.timeIntervalSince1970)
+            from      = msg.senderPeerId
         }
-
-        func toStoredMessage() -> StoredMessage {
-            StoredMessage(
-                messageId:      messageId,
-                conversationId: conversationId,
-                senderPeerId:   senderPeerId,
-                text:           text,
-                timestamp:      timestamp,
-                isOwn:          false
-            )
-        }
-    }
-
-    private func conversationIdFromTopic(_ topic: String) -> String? {
-        if topic.hasPrefix(invitePrefix) {
-            return String(topic.dropFirst(invitePrefix.count))
-        }
-        let dmPrefix = "fratrat/v1/dm/"
-        if topic.hasPrefix(dmPrefix) {
-            return String(topic.dropFirst(dmPrefix.count))
-        }
-        return nil
     }
 
     // MARK: - Profile helpers
@@ -531,8 +722,7 @@ final class MeshManager: ObservableObject {
         _ = saveRelationship(peerId: peerId, state: state)
         pendingLikes.removeValue(forKey: peerId)
         updateRequestCount()
-        try? await node?.subscribe(topic: "fratrat/v1/invite/\(conversationId)")
-        inviteConversationIds.insert(conversationId)
+        await openConversation(conversationId, key: conversationKey, peerId: peerId)
         Swift.print("[like] ✓ matched with \(peerId) conversation=\(conversationId)")
     }
 
@@ -573,13 +763,18 @@ final class MeshManager: ObservableObject {
         let state = RelationshipState.inviteSent(conversationId: conversationId)
         relationships[peerId] = state
         _ = saveRelationship(peerId: peerId, state: state)
-        try? await node?.subscribe(topic: "fratrat/v1/invite/\(conversationId)")
-        inviteConversationIds.insert(conversationId)
+        await openConversation(conversationId, key: conversationKey, peerId: peerId)
         Swift.print("[invite] ✓ sent to \(peerId) conversationId=\(conversationId)")
     }
 
     @MainActor
     func acceptInvite(from peerId: String, conversationId: String) async {
+        guard let identity, let invite = pendingInvites[peerId],
+              let conversationKey = try? identity.decrypt(ciphertext: invite.conversationKeyEnc)
+        else {
+            Swift.print("[invite] can't read the key for this invite")
+            return
+        }
         let payload = InviteAcceptPayload(
             conversationId: conversationId,
             acceptorPeerId: myPeerId ?? "",
@@ -591,8 +786,7 @@ final class MeshManager: ObservableObject {
         _ = saveRelationship(peerId: peerId, state: state)
         pendingInvites.removeValue(forKey: peerId)
         updateRequestCount()
-        try? await node?.subscribe(topic: "fratrat/v1/invite/\(conversationId)")
-        inviteConversationIds.insert(conversationId)
+        await openConversation(conversationId, key: conversationKey, peerId: peerId)
         Swift.print("[invite] ✓ accepted from \(peerId) conversationId=\(conversationId)")
     }
 
@@ -614,6 +808,7 @@ final class MeshManager: ObservableObject {
 
     @MainActor
     func clearCache() async {
+        rotationTask?.cancel()
         await node?.shutdown()
         node = nil
         clearAllCaches()
@@ -622,7 +817,8 @@ final class MeshManager: ObservableObject {
         alerts               = [:]
         conversationMessages = [:]
         unreadCounts         = [:]
-        inviteConversationIds = []
+        conversationPeers    = [:]
+        topicConversations   = [:]
         relationships        = [:]
         pendingLikes         = [:]
         pendingInvites       = [:]
@@ -731,61 +927,82 @@ final class MeshManager: ObservableObject {
     }
 
     @MainActor
-    func handleMessage(senderPeerId: String, conversation: String, payload: [UInt8]) {
-        // ── Invite-topic messages ─────────────────────────────────────
-        if conversation.hasPrefix(invitePrefix) {
-            let conversationId = String(conversation.dropFirst(invitePrefix.count))
-            inviteConversationIds.insert(conversationId)
+    func handleMessage(senderPeerId: String, topic: String, payload: Data) {
+        guard let conversationId = topicConversations[topic] else { return }
+        receive(payload, conversationId: conversationId, signer: senderPeerId)
+    }
 
-            if let text = String(bytes: payload, encoding: .utf8),
-               text.hasPrefix("JOINED:") {
-                let raw   = String(text.dropFirst("JOINED:".count))
-                let parts = raw.components(separatedBy: "|")
-                if parts.count >= 2 {
-                    peerProfiles[conversationId] = PeerProfile(
-                        peerId:        parts[0],
-                        name:          parts[1],
-                        college:       "",
-                        year:          "",
-                        bio:           "",
-                        photoBlobIds:  [],
-                        photoBlobKeys: [],
-                        timestamp:     UInt64(Date().timeIntervalSince1970)
-                    )
+    /// Fetch what relays held for every conversation while we were away.
+    @MainActor
+    func fetchMissedMessages() async {
+        guard node != nil else { return }
+        for conversationId in loadAllConversationKeyIds() {
+            guard let key = loadConversationKey(conversationId: conversationId) else { continue }
+            do {
+                let held = try await fetchForConversation(
+                    grpcAddr: grpcAddr, conversationId: conversationId, key: key
+                )
+                for sealed in held {
+                    receive(sealed, conversationId: conversationId, signer: nil, quietly: true)
                 }
-                return
+            } catch {
+                Swift.print("[chat] fetch failed: \(error)")
             }
-            if let msg = parseWireMessage(payload, fallbackConversation: conversationId, senderPeerId: senderPeerId) {
-                appendIfNew(msg, to: conversationId)
+        }
+    }
+
+    /// Open and record one sealed message. `signer` is the account that
+    /// signed a live message; nil for one fetched from a relay mailbox.
+    @MainActor
+    private func receive(_ sealed: Data, conversationId: String, signer: String?, quietly: Bool = false) {
+        guard let key = loadConversationKey(conversationId: conversationId),
+              let plaintext = try? openForConversation(key: key, conversationId: conversationId, sealed: sealed),
+              let wire = try? JSONDecoder().decode(WireMessage.self, from: plaintext),
+              let senderPeerId = signer ?? wire.from ?? conversationPeers[conversationId],
+              senderPeerId != myPeerId,
+              !blockedPeerIds.contains(senderPeerId)
+        else { return }
+
+        // Only the other member may write to a conversation. A QR chat's
+        // creator learns who that is from the joiner's first message.
+        if let expected = conversationPeers[conversationId] {
+            guard senderPeerId == expected else { return }
+        } else {
+            conversationPeers[conversationId] = senderPeerId
+        }
+
+        if wire.text.hasPrefix(Self.joinedPrefix) {
+            let name = String(wire.text.dropFirst(Self.joinedPrefix.count))
+            if peerProfiles[senderPeerId] == nil, !name.isEmpty {
+                peerProfiles[senderPeerId] = PeerProfile(
+                    peerId:        senderPeerId,
+                    name:          name,
+                    college:       "",
+                    year:          "",
+                    bio:           "",
+                    photoBlobIds:  [],
+                    photoBlobKeys: [],
+                    timestamp:     0
+                )
             }
             return
         }
 
-        // ── Regular DM ────────────────────────────────────────────────
-        let dmPrefix = "fratrat/v1/dm/"
-        let convId: String
-        if conversation.hasPrefix(dmPrefix) {
-            convId = String(conversation.dropFirst(dmPrefix.count))
-        } else {
-            convId = senderPeerId
-        }
-        if let msg = parseWireMessage(payload, fallbackConversation: convId, senderPeerId: senderPeerId) {
-            appendIfNew(msg, to: convId)
-        }
-    }
-
-    private func parseWireMessage(_ payload: [UInt8], fallbackConversation: String, senderPeerId: String) -> ChatMessage? {
-        let data = Data(payload)
-        if let wire = try? JSONDecoder().decode(WireMessage.self, from: data) {
-            let stored = wire.toStoredMessage()
-            _ = saveMessage(message: stored)
-            return ChatMessage(stored: stored)
-        }
-        guard let text = String(bytes: payload, encoding: .utf8), !text.isEmpty else { return nil }
-        guard !text.hasPrefix("LIKE:") else { return nil }
-        let msg = ChatMessage(text: text, isOwn: false, conversationId: fallbackConversation, senderPeerId: senderPeerId)
-        _ = saveMessage(message: msg.toStored())
-        return msg
+        let stored = StoredMessage(
+            messageId:      wire.messageId,
+            conversationId: conversationId,
+            senderPeerId:   senderPeerId,
+            text:           wire.text,
+            timestamp:      wire.timestamp,
+            isOwn:          false
+        )
+        let msg = ChatMessage(stored: stored)
+        guard conversationMessages[conversationId]?.contains(msg) != true else { return }
+        _ = saveMessage(message: stored)
+        appendIfNew(msg, to: conversationId)
+        guard !quietly else { return }
+        let name = peerProfiles[senderPeerId]?.displayName ?? "New message"
+        banner = BannerEvent(kind: .message, title: name, body: wire.text)
     }
 
     private func appendIfNew(_ msg: ChatMessage, to conversationId: String) {
@@ -800,22 +1017,8 @@ final class MeshManager: ObservableObject {
     }
 
     @MainActor
-    func handleMessageReceived(_ stored: StoredMessage) {
-        appendIfNew(ChatMessage(stored: stored), to: stored.conversationId)
-        if !stored.isOwn {
-            let name = peerProfiles[stored.senderPeerId]?.displayName ?? "New message"
-            banner = BannerEvent(kind: .message, title: name, body: stored.text)
-        }
-    }
-
-    @MainActor
-    func handleMessagesBackfilled(_ stored: [StoredMessage]) {
-        for s in stored { appendIfNew(ChatMessage(stored: s), to: s.conversationId) }
-        Swift.print("[mesh] backfilled \(stored.count) messages")
-    }
-
-    @MainActor
     func handleLikeReceived(_ payload: LikePayload) {
+        guard !blockedPeerIds.contains(payload.senderPeerId) else { return }
         let state = RelationshipState.likedBy(conversationKeyEnc: payload.conversationKeyEnc)
         relationships[payload.senderPeerId] = state
         _ = saveRelationship(peerId: payload.senderPeerId, state: state)
@@ -833,8 +1036,10 @@ final class MeshManager: ObservableObject {
         _ = saveRelationship(peerId: payload.senderPeerId, state: state)
         pendingLikes.removeValue(forKey: payload.senderPeerId)
         updateRequestCount()
-        inviteConversationIds.insert(payload.conversationId)
-        Task { try? await node?.subscribe(topic: "fratrat/v1/invite/\(payload.conversationId)") }
+        // They re-encrypted our conversation key to us when they liked back.
+        if let identity, let key = try? identity.decrypt(ciphertext: payload.conversationKeyEnc) {
+            Task { await openConversation(payload.conversationId, key: key, peerId: payload.senderPeerId) }
+        }
         Haptic.notification(.success)
         Swift.print("[like] ✓ matched with \(payload.senderPeerId) conversation=\(payload.conversationId)")
     }
@@ -848,6 +1053,7 @@ final class MeshManager: ObservableObject {
 
     @MainActor
     func handleInviteReceived(_ payload: InvitePayload) {
+        guard !blockedPeerIds.contains(payload.senderPeerId) else { return }
         let state = RelationshipState.inviteReceived(
             conversationId:     payload.conversationId,
             fromName:           payload.senderName,
@@ -867,7 +1073,7 @@ final class MeshManager: ObservableObject {
         let state = RelationshipState.inviteAccepted(conversationId: payload.conversationId)
         relationships[payload.acceptorPeerId] = state
         _ = saveRelationship(peerId: payload.acceptorPeerId, state: state)
-        inviteConversationIds.insert(payload.conversationId)
+        conversationPeers[payload.conversationId] = payload.acceptorPeerId
         Swift.print("[invite] ✓ accepted by \(payload.acceptorPeerId)")
     }
 
@@ -1049,12 +1255,6 @@ private class MeshEventBridge: SwiftEventHandler {
     func onAlertsBackfilled(alerts: [AlertProfile]) {
         Task { @MainActor [weak manager] in manager?.handleAlertsBackfilled(alerts) }
     }
-    func onMessageReceived(message: StoredMessage) {
-        Task { @MainActor [weak manager] in manager?.handleMessageReceived(message) }
-    }
-    func onMessagesBackfilled(messages: [StoredMessage]) {
-        Task { @MainActor [weak manager] in manager?.handleMessagesBackfilled(messages) }
-    }
     func onLikeReceived(payload: LikePayload) {
         Task { @MainActor [weak manager] in manager?.handleLikeReceived(payload) }
     }
@@ -1074,9 +1274,8 @@ private class MeshEventBridge: SwiftEventHandler {
         Task { @MainActor [weak manager] in manager?.handleInviteDeclined(peerId) }
     }
     func onMessage(peerId senderPeerId: String, conversation: String, payload: Data, contentType: UInt16) {
-        let bytes = [UInt8](payload)
         Task { @MainActor [weak manager] in
-            manager?.handleMessage(senderPeerId: senderPeerId, conversation: conversation, payload: bytes)
+            manager?.handleMessage(senderPeerId: senderPeerId, topic: conversation, payload: payload)
         }
     }
     func onPeerConnected(peerId: String) {
