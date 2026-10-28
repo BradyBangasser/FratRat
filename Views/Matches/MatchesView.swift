@@ -56,7 +56,7 @@ struct MatchesView: View {
             // convId is either a peer ID (DM) or a conversation UUID (invite/match)
             // Find the profile — check peerProfiles by convId directly,
             // or find a peer whose matched conversation_id equals convId
-            let profile = mesh.peerProfiles[convId] ?? profileForConversation(convId)
+            let profile = mesh.profile(forConversation: convId) ?? profileForConversation(convId)
             let last = msgs.sorted { $0.timestamp > $1.timestamp }.first
             result.append(Match(
                 id: stableId(for: convId),

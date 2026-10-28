@@ -15,26 +15,21 @@ import Foundation
 
 // MARK: - Invite payload
 // Encoded into the QR code / shareable string.
-// Format: "fratrat://invite/<conversationId>/<inviterPeerId>/<inviterName>"
+// Format: "fratrat://invite/<conversationId>/<inviterPeerId>/<keyHex>/<inviterName>"
+//
+// The QR code is the private channel: it carries the conversation key, so
+// whoever scans it can read and write the chat, and nobody else can.
 struct ChatInvite: Equatable {
     let conversationId: String
     let inviterPeerId: String
+    let key: Data
     let inviterName: String
-
-    /// The mesh topic both sides will use for this conversation.
-    /// Distinct from the peer-derived `dm/<min><max>` topic used for
-    /// existing matches — invite-based chats use a shared random ID
-    /// so the topic is identical for both the inviter and the joiner
-    /// without either side needing to know the other's peer ID upfront.
-    var topic: String {
-        "fratrat/v1/invite/\(conversationId)"
-    }
 
     /// Encode as a URL string for the QR code / share sheet.
     var encoded: String {
         let safeName = inviterName
-            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? inviterName
-        return "fratrat://invite/\(conversationId)/\(inviterPeerId)/\(safeName)"
+            .addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? inviterName
+        return "fratrat://invite/\(conversationId)/\(inviterPeerId)/\(key.hexString)/\(safeName)"
     }
 
     /// Parse from a scanned QR string or pasted invite code.
@@ -47,13 +42,14 @@ struct ChatInvite: Equatable {
             s = String(s.dropFirst("fratrat://invite/".count))
         }
 
-        let parts = s.split(separator: "/", maxSplits: 2).map(String.init)
-        guard parts.count >= 2 else { return nil }
+        let parts = s.split(separator: "/", maxSplits: 3).map(String.init)
+        guard parts.count >= 3 else { return nil }
 
         let conversationId = parts[0]
         let inviterPeerId = parts[1]
-        let inviterName = parts.count > 2
-            ? (parts[2].removingPercentEncoding ?? parts[2])
+        guard let key = Data(hexString: parts[2]), key.count == 32 else { return nil }
+        let inviterName = parts.count > 3
+            ? (parts[3].removingPercentEncoding ?? parts[3])
             : "Someone"
 
         guard !conversationId.isEmpty, !inviterPeerId.isEmpty else { return nil }
@@ -61,16 +57,36 @@ struct ChatInvite: Equatable {
         return ChatInvite(
             conversationId: conversationId,
             inviterPeerId: inviterPeerId,
+            key: key,
             inviterName: inviterName
         )
     }
 
-    /// Generate a new invite with a fresh random conversation ID.
+    /// Generate a new invite with a fresh conversation ID and key.
     static func create(inviterPeerId: String, inviterName: String) -> ChatInvite {
         ChatInvite(
             conversationId: UUID().uuidString.lowercased(),
             inviterPeerId: inviterPeerId,
+            key: generateConversationKey(),
             inviterName: inviterName
         )
+    }
+}
+
+extension Data {
+    var hexString: String { map { String(format: "%02x", $0) }.joined() }
+
+    init?(hexString: String) {
+        guard hexString.count % 2 == 0 else { return nil }
+        var bytes = [UInt8]()
+        bytes.reserveCapacity(hexString.count / 2)
+        var index = hexString.startIndex
+        while index < hexString.endIndex {
+            let next = hexString.index(index, offsetBy: 2)
+            guard let byte = UInt8(hexString[index..<next], radix: 16) else { return nil }
+            bytes.append(byte)
+            index = next
+        }
+        self.init(bytes)
     }
 }

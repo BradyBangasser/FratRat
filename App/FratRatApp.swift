@@ -66,7 +66,19 @@ struct FratRatApp: App {
             }
             .preferredColorScheme(appearanceMode.colorScheme)
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { enrollment.refresh() }
+                guard phase == .active else { return }
+                enrollment.refresh()
+                Task { await mesh.fetchMissedMessages() }
+            }
+            // A renewal brings this epoch's campus keys: start using them.
+            .onChange(of: enrollment.expiresAt) { _, _ in
+                Task { await mesh.refreshConversationSubscriptions() }
+            }
+            .onChange(of: mesh.dataDeleted) { _, deleted in
+                guard deleted else { return }
+                enrollment.refresh()
+                isOnboarded = false
+                mesh.dataDeleted = false
             }
         }
     }

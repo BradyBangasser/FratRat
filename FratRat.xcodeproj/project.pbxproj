@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F546A95B2FCE3BA900736EE5 /* AlertModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546A95A2FCE3BA600736EE5 /* AlertModel.swift */; };
 		F546A9602FDD837E00736EE5 /* CreateAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546A95F2FDD837E00736EE5 /* CreateAccountView.swift */; };
 		F546A9622FDD838E00736EE5 /* EduVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546A9612FDD838E00736EE5 /* EduVerificationView.swift */; };
 		F546A9642FDD875B00736EE5 /* ChatInvite.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546A9632FDD875B00736EE5 /* ChatInvite.swift */; };
@@ -44,7 +43,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		F546A95A2FCE3BA600736EE5 /* AlertModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertModel.swift; sourceTree = "<group>"; };
 		F546A95F2FDD837E00736EE5 /* CreateAccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateAccountView.swift; sourceTree = "<group>"; };
 		F546A9612FDD838E00736EE5 /* EduVerificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EduVerificationView.swift; sourceTree = "<group>"; };
 		F546A9632FDD875B00736EE5 /* ChatInvite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatInvite.swift; sourceTree = "<group>"; };
@@ -194,7 +192,6 @@
 			isa = PBXGroup;
 			children = (
 				F546A9632FDD875B00736EE5 /* ChatInvite.swift */,
-				F546A95A2FCE3BA600736EE5 /* AlertModel.swift */,
 				F5718B102FC7C4E400651802 /* UserProfile.swift */,
 			);
 			path = Models;
@@ -490,7 +487,6 @@
 				F5ABB0CF2FE7649B009DB4F0 /* RelaySwitcherSheet.swift in Sources */,
 				F5ABB0D32FEF3822009DB4F0 /* PendingRequestsView.swift in Sources */,
 				F5718AB22FC4914C00651802 /* FratRatApp.swift in Sources */,
-				F546A95B2FCE3BA900736EE5 /* AlertModel.swift in Sources */,
 				F5F72F612FE16F32002BF3A3 /* PeerPhotoView.swift in Sources */,
 				F546A9602FDD837E00736EE5 /* CreateAccountView.swift in Sources */,
 				F56786F42FFB1AC0003EA3E0 /* LogCapture.swift in Sources */,

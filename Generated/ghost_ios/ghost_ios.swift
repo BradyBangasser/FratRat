@@ -591,6 +591,13 @@ public protocol MeshNodeProtocol: AnyObject, Sendable {
     
     func evictOldBlobs(maxAgeSecs: UInt64) async 
     
+    /**
+     * Watch the current campus topics and drop ones that rotated out. Runs
+     * on connect; call it again about hourly (inboxes rotate daily) and
+     * after re-verifying.
+     */
+    func refreshCampus() async 
+    
     func replyWithProfile(profile: PeerProfile, toPeerId: String) async throws 
     
     func retrievePhoto(blobId: String) async throws  -> Data
@@ -607,15 +614,19 @@ public protocol MeshNodeProtocol: AnyObject, Sendable {
     
     func sendLikeDeclined(toPeerId: String) async throws 
     
-    func sendMessage(topic: String, text: String) async throws 
-    
+    /**
+     * Publish on a topic this node watches sealed (a conversation mailbox).
+     */
     func sendRaw(topic: String, payload: Data) async throws 
     
     func shutdown() async 
     
-    func subscribe(topic: String) async throws 
+    /**
+     * Watch a sealed topic (a conversation mailbox) under `key`.
+     */
+    func subscribeSealed(topic: String, key: Data) async throws 
     
-    func unsubscribe(topic: String) async throws 
+    func unsubscribeSealed(topic: String) async throws 
     
     func uploadPhoto(data: Data) async throws  -> String
     
@@ -783,6 +794,29 @@ open func evictOldBlobs(maxAgeSecs: UInt64)async   {
         )
 }
     
+    /**
+     * Watch the current campus topics and drop ones that rotated out. Runs
+     * on connect; call it again about hourly (inboxes rotate daily) and
+     * after re-verifying.
+     */
+open func refreshCampus()async   {
+    return
+        try!  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_ghost_ios_fn_method_meshnode_refresh_campus(
+                    self.uniffiCloneHandle()
+                    
+                )
+            },
+            pollFunc: ffi_ghost_ios_rust_future_poll_void,
+            completeFunc: ffi_ghost_ios_rust_future_complete_void,
+            freeFunc: ffi_ghost_ios_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: nil
+            
+        )
+}
+    
 open func replyWithProfile(profile: PeerProfile, toPeerId: String)async throws   {
     return
         try  await uniffiRustCallAsync(
@@ -919,23 +953,9 @@ open func sendLikeDeclined(toPeerId: String)async throws   {
         )
 }
     
-open func sendMessage(topic: String, text: String)async throws   {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_ghost_ios_fn_method_meshnode_send_message(
-                    self.uniffiCloneHandle(),
-                    FfiConverterString.lower(topic),FfiConverterString.lower(text)
-                )
-            },
-            pollFunc: ffi_ghost_ios_rust_future_poll_void,
-            completeFunc: ffi_ghost_ios_rust_future_complete_void,
-            freeFunc: ffi_ghost_ios_rust_future_free_void,
-            liftFunc: { $0 },
-            errorHandler: FfiConverterTypeMeshError_lift
-        )
-}
-    
+    /**
+     * Publish on a topic this node watches sealed (a conversation mailbox).
+     */
 open func sendRaw(topic: String, payload: Data)async throws   {
     return
         try  await uniffiRustCallAsync(
@@ -971,13 +991,16 @@ open func shutdown()async   {
         )
 }
     
-open func subscribe(topic: String)async throws   {
+    /**
+     * Watch a sealed topic (a conversation mailbox) under `key`.
+     */
+open func subscribeSealed(topic: String, key: Data)async throws   {
     return
         try  await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_ghost_ios_fn_method_meshnode_subscribe(
+                uniffi_ghost_ios_fn_method_meshnode_subscribe_sealed(
                     self.uniffiCloneHandle(),
-                    FfiConverterString.lower(topic)
+                    FfiConverterString.lower(topic),FfiConverterData.lower(key)
                 )
             },
             pollFunc: ffi_ghost_ios_rust_future_poll_void,
@@ -988,11 +1011,11 @@ open func subscribe(topic: String)async throws   {
         )
 }
     
-open func unsubscribe(topic: String)async throws   {
+open func unsubscribeSealed(topic: String)async throws   {
     return
         try  await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_ghost_ios_fn_method_meshnode_unsubscribe(
+                uniffi_ghost_ios_fn_method_meshnode_unsubscribe_sealed(
                     self.uniffiCloneHandle(),
                     FfiConverterString.lower(topic)
                 )
@@ -2184,6 +2207,7 @@ public enum MeshError: Swift.Error, Equatable, Hashable, Foundation.LocalizedErr
     )
     case EnrollError(msg: String
     )
+    case NotVerified
     case Unknown
 
     
@@ -2226,7 +2250,8 @@ public struct FfiConverterTypeMeshError: FfiConverterRustBuffer {
         case 6: return .EnrollError(
             msg: try FfiConverterString.read(from: &buf)
             )
-        case 7: return .Unknown
+        case 7: return .NotVerified
+        case 8: return .Unknown
 
          default: throw UniffiInternalError.unexpectedEnumCase
         }
@@ -2266,8 +2291,12 @@ public struct FfiConverterTypeMeshError: FfiConverterRustBuffer {
             FfiConverterString.write(msg, into: &buf)
             
         
-        case .Unknown:
+        case .NotVerified:
             writeInt(&buf, Int32(7))
+        
+        
+        case .Unknown:
+            writeInt(&buf, Int32(8))
         
         }
     }
@@ -2471,10 +2500,6 @@ public protocol SwiftEventHandler: AnyObject, Sendable {
     func onAlertReceived(alert: AlertProfile) 
     
     func onAlertsBackfilled(alerts: [AlertProfile]) 
-    
-    func onMessageReceived(message: StoredMessage) 
-    
-    func onMessagesBackfilled(messages: [StoredMessage]) 
     
     func onLikeReceived(payload: LikePayload) 
     
@@ -2783,54 +2808,6 @@ fileprivate struct UniffiCallbackInterfaceSwiftEventHandler {
                 writeReturn: writeReturn
             )
         },
-        onMessageReceived: { (
-            uniffiHandle: UInt64,
-            message: RustBuffer,
-            uniffiOutReturn: UnsafeMutableRawPointer,
-            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
-        ) in
-            let makeCall = {
-                () throws -> () in
-                guard let uniffiObj = try? FfiConverterCallbackInterfaceSwiftEventHandler.handleMap.get(handle: uniffiHandle) else {
-                    throw UniffiInternalError.unexpectedStaleHandle
-                }
-                return uniffiObj.onMessageReceived(
-                     message: try FfiConverterTypeStoredMessage_lift(message)
-                )
-            }
-
-            
-            let writeReturn = { () }
-            uniffiTraitInterfaceCall(
-                callStatus: uniffiCallStatus,
-                makeCall: makeCall,
-                writeReturn: writeReturn
-            )
-        },
-        onMessagesBackfilled: { (
-            uniffiHandle: UInt64,
-            messages: RustBuffer,
-            uniffiOutReturn: UnsafeMutableRawPointer,
-            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
-        ) in
-            let makeCall = {
-                () throws -> () in
-                guard let uniffiObj = try? FfiConverterCallbackInterfaceSwiftEventHandler.handleMap.get(handle: uniffiHandle) else {
-                    throw UniffiInternalError.unexpectedStaleHandle
-                }
-                return uniffiObj.onMessagesBackfilled(
-                     messages: try FfiConverterSequenceTypeStoredMessage.lift(messages)
-                )
-            }
-
-            
-            let writeReturn = { () }
-            uniffiTraitInterfaceCall(
-                callStatus: uniffiCallStatus,
-                makeCall: makeCall,
-                writeReturn: writeReturn
-            )
-        },
         onLikeReceived: { (
             uniffiHandle: UInt64,
             payload: RustBuffer,
@@ -3117,6 +3094,30 @@ fileprivate struct FfiConverterOptionString: FfiConverterRustBuffer {
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterString.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionData: FfiConverterRustBuffer {
+    typealias SwiftType = Data?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterData.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterData.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -3512,6 +3513,15 @@ public func deleteAlert(id: UInt64)  {try! rustCall() {
 }
 }
 /**
+ * Erase everything this device holds: account identity, credential,
+ * conversation keys and caches. The next launch is a new, unenrolled device.
+ */
+public func deleteAllLocalData()  {try! rustCall() {
+    uniffi_ghost_ios_fn_func_delete_all_local_data($0
+    )
+}
+}
+/**
  * Delete all messages for a conversation (e.g. user clears history).
  */
 public func deleteConversation(conversationId: String)  {try! rustCall() {
@@ -3872,6 +3882,157 @@ public func uploadPhotoBlob(data: Data, grpcAddr: String)async throws  -> String
             errorHandler: FfiConverterTypeMeshError_lift
         )
 }
+/**
+ * Order Discover candidates: people at your college first, then profiles
+ * with photos, then with a bio, then the most recently updated. Ties break
+ * on peer id so the order is stable between renders.
+ */
+public func rankProfiles(myCollege: String, profiles: [PeerProfile]) -> [PeerProfile]  {
+    return try!  FfiConverterSequenceTypePeerProfile.lift(try! rustCall() {
+    uniffi_ghost_ios_fn_func_rank_profiles(
+        FfiConverterString.lower(myCollege),
+        FfiConverterSequenceTypePeerProfile.lower(profiles),$0
+    )
+})
+}
+/**
+ * True when this device can take part: it holds the current epoch's key.
+ */
+public func hasCampusKey() -> Bool  {
+    return try!  FfiConverterBool.lift(try! rustCall() {
+    uniffi_ghost_ios_fn_func_has_campus_key($0
+    )
+})
+}
+/**
+ * Today's mailbox topic, where a message is published.
+ */
+public func conversationSendTopic(key: Data)throws  -> String  {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeMeshError_lift) {
+    uniffi_ghost_ios_fn_func_conversation_send_topic(
+        FfiConverterData.lower(key),$0
+    )
+})
+}
+/**
+ * The key libghost seals this conversation's topics with, so relays don't
+ * see whose account sent each message (`MeshNode::subscribe_sealed`).
+ */
+public func conversationTopicKey(key: Data)throws  -> Data  {
+    return try  FfiConverterData.lift(try rustCallWithError(FfiConverterTypeMeshError_lift) {
+    uniffi_ghost_ios_fn_func_conversation_topic_key(
+        FfiConverterData.lower(key),$0
+    )
+})
+}
+/**
+ * The topics to watch for a conversation right now: yesterday's, today's and
+ * tomorrow's mailbox, so nothing is missed across the daily rotation.
+ */
+public func conversationTopics(key: Data)throws  -> [String]  {
+    return try  FfiConverterSequenceString.lift(try rustCallWithError(FfiConverterTypeMeshError_lift) {
+    uniffi_ghost_ios_fn_func_conversation_topics(
+        FfiConverterData.lower(key),$0
+    )
+})
+}
+public func deleteConversationKey(conversationId: String)  {try! rustCall() {
+    uniffi_ghost_ios_fn_func_delete_conversation_key(
+        FfiConverterString.lower(conversationId),$0
+    )
+}
+}
+/**
+ * Leave a sealed message in today's mailbox on the relay, so the other
+ * member gets it on reconnect even if they're offline now.
+ */
+public func depositForConversation(grpcAddr: String, key: Data, sealed: Data)async throws   {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_ghost_ios_fn_func_deposit_for_conversation(FfiConverterString.lower(grpcAddr),FfiConverterData.lower(key),FfiConverterData.lower(sealed)
+                )
+            },
+            pollFunc: ffi_ghost_ios_rust_future_poll_void,
+            completeFunc: ffi_ghost_ios_rust_future_complete_void,
+            freeFunc: ffi_ghost_ios_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeMeshError_lift
+        )
+}
+/**
+ * Sealed messages the relay holds for a conversation that this device
+ * hasn't read yet, oldest first per mailbox. Covers every day since the last
+ * fetch (at most `FETCH_BACK_DAYS` back) through tomorrow.
+ */
+public func fetchForConversation(grpcAddr: String, conversationId: String, key: Data)async throws  -> [Data]  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_ghost_ios_fn_func_fetch_for_conversation(FfiConverterString.lower(grpcAddr),FfiConverterString.lower(conversationId),FfiConverterData.lower(key)
+                )
+            },
+            pollFunc: ffi_ghost_ios_rust_future_poll_rust_buffer,
+            completeFunc: ffi_ghost_ios_rust_future_complete_rust_buffer,
+            freeFunc: ffi_ghost_ios_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterSequenceData.lift,
+            errorHandler: FfiConverterTypeMeshError_lift
+        )
+}
+/**
+ * Every conversation this device holds a key for.
+ */
+public func loadAllConversationKeyIds() -> [String]  {
+    return try!  FfiConverterSequenceString.lift(try! rustCall() {
+    uniffi_ghost_ios_fn_func_load_all_conversation_key_ids($0
+    )
+})
+}
+public func loadConversationKey(conversationId: String) -> Data?  {
+    return try!  FfiConverterOptionData.lift(try! rustCall() {
+    uniffi_ghost_ios_fn_func_load_conversation_key(
+        FfiConverterString.lower(conversationId),$0
+    )
+})
+}
+/**
+ * Decrypt what `seal_for_conversation` produced. Fails on anything not sealed
+ * with this conversation's key and id.
+ */
+public func openForConversation(key: Data, conversationId: String, sealed: Data)throws  -> Data  {
+    return try  FfiConverterData.lift(try rustCallWithError(FfiConverterTypeMeshError_lift) {
+    uniffi_ghost_ios_fn_func_open_for_conversation(
+        FfiConverterData.lower(key),
+        FfiConverterString.lower(conversationId),
+        FfiConverterData.lower(sealed),$0
+    )
+})
+}
+/**
+ * Remember a conversation's key on this device.
+ */
+public func saveConversationKey(conversationId: String, key: Data) -> Bool  {
+    return try!  FfiConverterBool.lift(try! rustCall() {
+    uniffi_ghost_ios_fn_func_save_conversation_key(
+        FfiConverterString.lower(conversationId),
+        FfiConverterData.lower(key),$0
+    )
+})
+}
+/**
+ * Encrypt a payload for a conversation: `nonce(12) || ciphertext`. The
+ * conversation id is bound as associated data, so a message can't be replayed
+ * into another conversation that shares no key anyway, or relabelled.
+ */
+public func sealForConversation(key: Data, conversationId: String, plaintext: Data)throws  -> Data  {
+    return try  FfiConverterData.lift(try rustCallWithError(FfiConverterTypeMeshError_lift) {
+    uniffi_ghost_ios_fn_func_seal_for_conversation(
+        FfiConverterData.lower(key),
+        FfiConverterString.lower(conversationId),
+        FfiConverterData.lower(plaintext),$0
+    )
+})
+}
 
 private enum InitializationResult {
     case ok
@@ -3901,6 +4062,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_func_delete_alert() != 49740) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_delete_all_local_data() != 54114) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_func_delete_conversation() != 57410) {
@@ -4005,6 +4169,45 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ghost_ios_checksum_func_upload_photo_blob() != 44420) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_ghost_ios_checksum_func_rank_profiles() != 29109) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_has_campus_key() != 61137) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_conversation_send_topic() != 4312) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_conversation_topic_key() != 2422) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_conversation_topics() != 36824) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_delete_conversation_key() != 41957) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_deposit_for_conversation() != 13719) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_fetch_for_conversation() != 61901) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_load_all_conversation_key_ids() != 4199) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_load_conversation_key() != 57507) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_open_for_conversation() != 63990) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_save_conversation_key() != 17029) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_seal_for_conversation() != 38114) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_ghost_ios_checksum_method_meshnode_announce_alert() != 8723) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -4018,6 +4221,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_method_meshnode_evict_old_blobs() != 21558) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_method_meshnode_refresh_campus() != 28003) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_method_meshnode_reply_with_profile() != 19183) {
@@ -4044,19 +4250,16 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ghost_ios_checksum_method_meshnode_send_like_declined() != 51867) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ghost_ios_checksum_method_meshnode_send_message() != 38845) {
-        return InitializationResult.apiChecksumMismatch
-    }
-    if (uniffi_ghost_ios_checksum_method_meshnode_send_raw() != 41873) {
+    if (uniffi_ghost_ios_checksum_method_meshnode_send_raw() != 42025) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_method_meshnode_shutdown() != 39011) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ghost_ios_checksum_method_meshnode_subscribe() != 251) {
+    if (uniffi_ghost_ios_checksum_method_meshnode_subscribe_sealed() != 16283) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ghost_ios_checksum_method_meshnode_unsubscribe() != 16343) {
+    if (uniffi_ghost_ios_checksum_method_meshnode_unsubscribe_sealed() != 15840) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_method_meshnode_upload_photo() != 58394) {
@@ -4119,28 +4322,22 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_alerts_backfilled() != 27591) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_message_received() != 13385) {
+    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_like_received() != 38981) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_messages_backfilled() != 64413) {
+    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_like_back_received() != 47706) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_like_received() != 56030) {
+    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_like_declined() != 43424) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_like_back_received() != 39205) {
+    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_invite_received() != 45212) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_like_declined() != 58486) {
+    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_invite_accepted() != 18296) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_invite_received() != 7697) {
-        return InitializationResult.apiChecksumMismatch
-    }
-    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_invite_accepted() != 27181) {
-        return InitializationResult.apiChecksumMismatch
-    }
-    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_invite_declined() != 45968) {
+    if (uniffi_ghost_ios_checksum_method_swifteventhandler_on_invite_declined() != 27303) {
         return InitializationResult.apiChecksumMismatch
     }
 

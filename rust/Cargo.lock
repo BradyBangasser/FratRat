@@ -1393,13 +1393,16 @@ dependencies = [
 name = "ghost-ios"
 version = "0.1.0"
 dependencies = [
+ "chacha20poly1305",
  "futures",
  "hex",
+ "hmac 0.13.0",
  "libghost",
  "libp2p",
  "postcard",
  "prost",
  "serde",
+ "sha2 0.11.0",
  "thiserror 2.0.18",
  "tokio",
  "tokio-stream",
@@ -1408,6 +1411,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uniffi",
+ "zkcred",
 ]
 
 [[package]]
@@ -5511,6 +5515,7 @@ dependencies = [
  "bbs_plus",
  "blake2",
  "dock_crypto_utils",
+ "hmac 0.12.1",
  "rand 0.8.6",
  "schnorr_pok",
  "sha2 0.10.9",

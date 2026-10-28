@@ -704,7 +704,6 @@ private struct CustomRelayInput: View {
 
     /// Call gRPC on the entered host to get the full multiaddr + peer ID
     private func resolveHost() async {
-        print("resolveHost")
         let host = hostInput.trimmingCharacters(in: .whitespaces)
         guard !host.isEmpty else { return }
 

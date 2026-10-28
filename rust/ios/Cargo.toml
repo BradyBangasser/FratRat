@@ -33,3 +33,9 @@ tonic = "0.14"
 tonic-prost = "0.14"
 tokio-stream = "0.1.18"
 hex = "0.4"
+chacha20poly1305 = "0.10"
+hmac = "0.13.0"
+sha2 = "0.11"
+
+[dev-dependencies]
+zkcred = { path = "../../../zrp/crates/zkcred" }
