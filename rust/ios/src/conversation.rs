@@ -310,7 +310,7 @@ mod tests {
     /// (zkrp's scripts/local-up.sh), then:
     ///
     ///   ZKRP_E2E_GRPC=http://127.0.0.1:9001 \
-    ///   DEV_ISSUER_KEY=../../zrp/deploy/local/secrets/issuer-key \
+    ///   DEV_ISSUER_KEY=/abs/path/to/zrp/deploy/local/secrets/issuer-key \
     ///   cargo test -p ghost-ios -- --ignored relay_holds_sealed_messages
     #[test]
     #[ignore]

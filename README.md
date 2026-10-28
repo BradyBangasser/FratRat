@@ -75,7 +75,8 @@ Native iOS, built in SwiftUI. The app is organized into Discover, Matches, Chat,
 Party, Profile, and Settings, with the zkRP mesh integration in `Mesh/` and the
 generated network stubs in `Generated/`. The Rust core (`rust/ios`, built into
 `libs/libghost_ios.a` by an Xcode build phase) and a terminal test client
-(`rust/cli`) sit on zkRP's `libghost`, pinned to the ref in `zkrp.ref`.
+(`rust/cli`) sit on zkRP's `libghost`, pinned to a zkRP version tag in their
+`Cargo.toml` (see `rust/Cargo.toml` for building against a local zkRP).
 
 Network settings live in `Zkrp.xcconfig`, not in code: a bootstrap list of relay
 hosts and the pinned credential issuer key. The app learns everything else
