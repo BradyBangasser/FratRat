@@ -1,0 +1,7 @@
+# Build against a local zkrp checkout instead of the pinned version tag.
+# Copy to config.toml (gitignored) next to this file. Cargo.lock will change
+# while it's in place, so the Xcode build drops --locked; don't commit the lock
+# file from such a build.
+[patch."https://github.com/BradyBangasser/zkrp"]
+libghost = { path = "../../zrp/crates/libghost" }
+zkcred = { path = "../../zrp/crates/zkcred" }

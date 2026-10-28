@@ -15,8 +15,8 @@ libp2p = { version = "0.56", features = [
   "dns",
   "gossipsub",
 ] }
-libghost = { path = "../../../zrp/crates/libghost" }
-zkcred = { path = "../../../zrp/crates/zkcred" }
+libghost = { git = "https://github.com/BradyBangasser/zkrp", tag = "v0.3.0" }
+zkcred = { git = "https://github.com/BradyBangasser/zkrp", tag = "v0.3.0" }
 hex = "0.4"
 uniffi = { version = "0.31.1", features = ["tokio"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

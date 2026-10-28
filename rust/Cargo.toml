@@ -1,8 +1,10 @@
 # FratRat's Rust: the iOS core (`ios`, built into libs/libghost_ios.a) and a
 # terminal test client (`cli`). Both sit on zkrp's libghost.
 #
-# zkrp is expected as a sibling checkout at ../../zrp (the Xcode build phase
-# clones it there and checks out the ref in ../zkrp.ref).
+# zkrp comes from GitHub at the version tag in ios/ and cli/Cargo.toml; to
+# move to a newer zkrp, change that tag in both and rebuild (Cargo.lock
+# follows). To build against a local zkrp checkout instead, copy
+# .cargo/config.toml.example to .cargo/config.toml (gitignored).
 [workspace]
 members = ["ios", "cli"]
 resolver = "2"

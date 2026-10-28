@@ -1,2 +1,4 @@
 rust/target/
 Zkrp.local.xcconfig
+# A local zkrp override; see rust/.cargo/config.toml.example.
+rust/.cargo/config.toml
