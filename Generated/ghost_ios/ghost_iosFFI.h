@@ -828,6 +828,11 @@ RustBuffer uniffi_ghost_ios_fn_func_load_conversation_key(RustBuffer conversatio
 RustBuffer uniffi_ghost_ios_fn_func_open_for_conversation(RustBuffer key, RustBuffer conversation_id, RustBuffer sealed, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_REGISTER_PUSH_FOR_CONVERSATION
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_REGISTER_PUSH_FOR_CONVERSATION
+uint64_t uniffi_ghost_ios_fn_func_register_push_for_conversation(RustBuffer grpc_addr, RustBuffer key, RustBuffer token, int8_t sandbox
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_SAVE_CONVERSATION_KEY
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_SAVE_CONVERSATION_KEY
 int8_t uniffi_ghost_ios_fn_func_save_conversation_key(RustBuffer conversation_id, RustBuffer key, RustCallStatus *_Nonnull out_status
@@ -1401,6 +1406,12 @@ uint16_t uniffi_ghost_ios_checksum_func_load_conversation_key(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_OPEN_FOR_CONVERSATION
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_OPEN_FOR_CONVERSATION
 uint16_t uniffi_ghost_ios_checksum_func_open_for_conversation(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_REGISTER_PUSH_FOR_CONVERSATION
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_REGISTER_PUSH_FOR_CONVERSATION
+uint16_t uniffi_ghost_ios_checksum_func_register_push_for_conversation(void
     
 );
 #endif

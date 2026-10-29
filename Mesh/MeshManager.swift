@@ -121,6 +121,33 @@ final class MeshManager: ObservableObject {
             topicConversations[topic] = id
             try? await node.subscribeSealed(topic: topic, key: topicKey)
         }
+        await registerPush(key: key)
+    }
+
+    // MARK: - Push
+
+    /// Ask relays to wake this phone when a message for this conversation is
+    /// left while the app isn't running. Only a sealed token leaves the
+    /// phone; repeats are skipped in the core.
+    @MainActor
+    private func registerPush(key: Data) async {
+        guard let token = AppDelegate.pushToken else { return }
+        do {
+            _ = try await registerPushForConversation(
+                grpcAddr: grpcAddr, key: key, token: token, sandbox: AppDelegate.pushSandbox
+            )
+        } catch {
+            Swift.print("[push] registration failed: \(error)")
+        }
+    }
+
+    /// Register for every conversation: when the token arrives, and as
+    /// mailboxes rotate (refreshConversationSubscriptions).
+    @MainActor
+    func registerPushForAllConversations() async {
+        for id in loadAllConversationKeyIds() {
+            if let key = loadConversationKey(conversationId: id) { await registerPush(key: key) }
+        }
     }
 
     /// Watch the current mailbox window of every conversation, and the
@@ -149,6 +176,7 @@ final class MeshManager: ObservableObject {
         }
         topicConversations = wanted
         await node.refreshCampus()
+        await registerPushForAllConversations()
     }
 
     // MARK: - Blocking

@@ -49,7 +49,13 @@ static INIT_LOGGING: Once = Once::new();
 
 fn init_logging() {
     INIT_LOGGING.call_once(|| {
-        libghost::debug::init_tracing(tracing::Level::DEBUG, 256 * 1024);
+        // DEBUG feeds the app's log capture; FRATRAT_LOG (e.g. "warn") quiets
+        // it for the terminal client.
+        let level = std::env::var("FRATRAT_LOG")
+            .ok()
+            .and_then(|l| l.parse().ok())
+            .unwrap_or(tracing::Level::DEBUG);
+        libghost::debug::init_tracing(level, 256 * 1024);
     });
 }
 
@@ -63,6 +69,10 @@ fn get_runtime() -> &'static tokio::runtime::Runtime {
 }
 
 fn documents_dir() -> String {
+    // Lets the terminal client keep one account per directory.
+    if let Ok(dir) = std::env::var("FRATRAT_DATA_DIR") {
+        return dir;
+    }
     std::env::var("HOME")
         .map(|h| {
             if cfg!(target_os = "ios") {
@@ -80,7 +90,8 @@ fn ghost_db_path() -> String {
 
 static SHARED_STORE: OnceLock<Arc<dyn GhostStore>> = OnceLock::new();
 
-fn store() -> Arc<dyn GhostStore> {
+/// The device's store: identity, credential, keys and caches.
+pub fn store() -> Arc<dyn GhostStore> {
     Arc::clone(SHARED_STORE.get_or_init(|| Arc::new(SqliteStore::new(&ghost_db_path()))))
 }
 

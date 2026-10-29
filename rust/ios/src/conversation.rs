@@ -129,10 +129,62 @@ pub async fn deposit_for_conversation(
     let mailbox_id = mailbox(&key)?.current_id(now_unix());
     crate::get_runtime()
         .spawn(async move {
-            libghost::mailbox::deposit(store().as_ref(), &grpc_addr, &mailbox_id, sealed)
+            let store = store();
+            // Our own tag, so the relay doesn't wake this phone for its own message.
+            let tag = libghost::push::tag(store.as_ref(), &mailbox_id);
+            libghost::mailbox::deposit(store.as_ref(), &grpc_addr, &mailbox_id, sealed, tag)
                 .await
                 .map(|_| ())
                 .map_err(rpc_error)
+        })
+        .await
+        .map_err(rpc_error)?
+}
+
+/// Ask relays to wake this phone when something is deposited for this
+/// conversation, today and tomorrow (call again as days pass; repeats are
+/// skipped). `token` is the APNs device token; `sandbox` for development
+/// builds. Returns how many registrations went out; 0 when the network has
+/// no push service.
+#[uniffi::export]
+pub async fn register_push_for_conversation(
+    grpc_addr: String,
+    key: Vec<u8>,
+    token: Vec<u8>,
+    sandbox: bool,
+) -> Result<u32, MeshError> {
+    let mailbox = mailbox(&key)?;
+    crate::get_runtime()
+        .spawn(async move {
+            let store = store();
+            let Some(push_key) = libghost::directory::cached(store.as_ref())
+                .map(|d| d.push_public_key)
+                .filter(|k| k.len() == 32)
+            else {
+                return Ok(0);
+            };
+            let service = if sandbox {
+                libghost::push::APNS_SANDBOX
+            } else {
+                libghost::push::APNS_PRODUCTION
+            };
+            let today = mailbox.epoch_day(now_unix());
+            let mut sent = 0;
+            for day in [today, today + 1] {
+                let id = mailbox.id_for_day(day);
+                let registered = libghost::push::register(
+                    store.as_ref(),
+                    &grpc_addr,
+                    &push_key,
+                    &id,
+                    service,
+                    &token,
+                )
+                .await
+                .map_err(rpc_error)?;
+                sent += registered as u32;
+            }
+            Ok(sent)
         })
         .await
         .map_err(rpc_error)?
