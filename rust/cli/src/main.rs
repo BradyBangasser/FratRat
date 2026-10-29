@@ -52,6 +52,7 @@ const HELP: &str = "  /peers            people seen on the network
   /chats            your conversations
   /chat <n>         talk in conversation n (then just type)
   /fetch            fetch messages relays held while you were away
+  /report <n> <why> report person n from /peers (anonymously)
   /profile          show your profile
   /help, /quit";
 
@@ -481,6 +482,11 @@ impl App {
     }
 
     async fn fetch(&mut self) {
+        // Likes and invites held while we were away arrive as events.
+        self.node.fetch_inbox().await;
+        if let Some(token) = self.push_token.clone() {
+            self.node.register_push_inbox(token, true).await;
+        }
         let chats: Vec<(String, Vec<u8>)> = self
             .chats
             .iter()
@@ -639,6 +645,35 @@ impl App {
                 None => println!("usage: /chat <n> (see /chats)"),
             },
             "/fetch" => self.fetch().await,
+            "/report" => {
+                let (num, why) = arg.trim().split_once(' ').unwrap_or((arg.trim(), ""));
+                let target = num
+                    .parse::<usize>()
+                    .ok()
+                    .and_then(|n| n.checked_sub(1))
+                    .and_then(|i| self.peers.get(i));
+                match target {
+                    Some(p) => {
+                        // The same shape the iOS app sends, minus messages.
+                        let report = serde_json::json!({
+                            "version": 1,
+                            "reported": p.peer_id,
+                            "reason": why,
+                            "details": "",
+                            "profile": { "name": p.name, "college": p.college,
+                                         "year": p.year, "bio": p.bio },
+                            "messages": [],
+                        });
+                        let mut data = b"==== FratRat report ====\n".to_vec();
+                        data.extend(serde_json::to_vec_pretty(&report).expect("json"));
+                        match ghost_ios::upload_report(data, self.grpc.clone()).await {
+                            Ok(id) => println!("report sent: {id}"),
+                            Err(e) => println!("report failed: {e}"),
+                        }
+                    }
+                    None => println!("usage: /report <n> <reason> (see /peers)"),
+                }
+            }
             "/profile" => {
                 let p = &self.profile;
                 println!("  {} · {} · {} — {}", p.name, p.college, p.year, p.bio);

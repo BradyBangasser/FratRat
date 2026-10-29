@@ -592,11 +592,24 @@ public protocol MeshNodeProtocol: AnyObject, Sendable {
     func evictOldBlobs(maxAgeSecs: UInt64) async 
     
     /**
+     * Fetch likes, invites and replies relays held for us while we were away;
+     * they arrive through the usual callbacks. Returns how many came.
+     */
+    func fetchInbox() async  -> UInt32
+    
+    /**
      * Watch the current campus topics and drop ones that rotated out. Runs
      * on connect; call it again about hourly (inboxes rotate daily) and
      * after re-verifying.
      */
     func refreshCampus() async 
+    
+    /**
+     * Ask relays to wake this phone when something is held in our inbox
+     * (likes, invites), today and tomorrow; repeats are skipped. Returns how
+     * many registrations went out.
+     */
+    func registerPushInbox(token: Data, sandbox: Bool) async  -> UInt32
     
     func replyWithProfile(profile: PeerProfile, toPeerId: String) async throws 
     
@@ -795,6 +808,28 @@ open func evictOldBlobs(maxAgeSecs: UInt64)async   {
 }
     
     /**
+     * Fetch likes, invites and replies relays held for us while we were away;
+     * they arrive through the usual callbacks. Returns how many came.
+     */
+open func fetchInbox()async  -> UInt32  {
+    return
+        try!  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_ghost_ios_fn_method_meshnode_fetch_inbox(
+                    self.uniffiCloneHandle()
+                    
+                )
+            },
+            pollFunc: ffi_ghost_ios_rust_future_poll_u32,
+            completeFunc: ffi_ghost_ios_rust_future_complete_u32,
+            freeFunc: ffi_ghost_ios_rust_future_free_u32,
+            liftFunc: FfiConverterUInt32.lift,
+            errorHandler: nil
+            
+        )
+}
+    
+    /**
      * Watch the current campus topics and drop ones that rotated out. Runs
      * on connect; call it again about hourly (inboxes rotate daily) and
      * after re-verifying.
@@ -812,6 +847,29 @@ open func refreshCampus()async   {
             completeFunc: ffi_ghost_ios_rust_future_complete_void,
             freeFunc: ffi_ghost_ios_rust_future_free_void,
             liftFunc: { $0 },
+            errorHandler: nil
+            
+        )
+}
+    
+    /**
+     * Ask relays to wake this phone when something is held in our inbox
+     * (likes, invites), today and tomorrow; repeats are skipped. Returns how
+     * many registrations went out.
+     */
+open func registerPushInbox(token: Data, sandbox: Bool)async  -> UInt32  {
+    return
+        try!  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_ghost_ios_fn_method_meshnode_register_push_inbox(
+                    self.uniffiCloneHandle(),
+                    FfiConverterData.lower(token),FfiConverterBool.lower(sandbox)
+                )
+            },
+            pollFunc: ffi_ghost_ios_rust_future_poll_u32,
+            completeFunc: ffi_ghost_ios_rust_future_complete_u32,
+            freeFunc: ffi_ghost_ios_rust_future_free_u32,
+            liftFunc: FfiConverterUInt32.lift,
             errorHandler: nil
             
         )
@@ -3883,6 +3941,24 @@ public func uploadPhotoBlob(data: Data, grpcAddr: String)async throws  -> String
         )
 }
 /**
+ * Upload a user report: anonymous like a debug log, but filed apart for the
+ * operator (`zkrp-relay reports`). Returns the report id.
+ */
+public func uploadReport(data: Data, grpcAddr: String)async throws  -> String  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_ghost_ios_fn_func_upload_report(FfiConverterData.lower(data),FfiConverterString.lower(grpcAddr)
+                )
+            },
+            pollFunc: ffi_ghost_ios_rust_future_poll_rust_buffer,
+            completeFunc: ffi_ghost_ios_rust_future_complete_rust_buffer,
+            freeFunc: ffi_ghost_ios_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterString.lift,
+            errorHandler: FfiConverterTypeMeshError_lift
+        )
+}
+/**
  * Order Discover candidates: people at your college first, then profiles
  * with photos, then with a bio, then the most recently updated. Ties break
  * on peer id so the order is stable between renders.
@@ -4190,6 +4266,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ghost_ios_checksum_func_upload_photo_blob() != 44420) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_ghost_ios_checksum_func_upload_report() != 52813) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_ghost_ios_checksum_func_rank_profiles() != 29109) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -4247,7 +4326,13 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ghost_ios_checksum_method_meshnode_evict_old_blobs() != 21558) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_ghost_ios_checksum_method_meshnode_fetch_inbox() != 31328) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_ghost_ios_checksum_method_meshnode_refresh_campus() != 28003) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_method_meshnode_register_push_inbox() != 42221) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_method_meshnode_reply_with_profile() != 19183) {
