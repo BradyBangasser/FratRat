@@ -4009,6 +4009,27 @@ public func openForConversation(key: Data, conversationId: String, sealed: Data)
 })
 }
 /**
+ * Ask relays to wake this phone when something is deposited for this
+ * conversation, today and tomorrow (call again as days pass; repeats are
+ * skipped). `token` is the APNs device token; `sandbox` for development
+ * builds. Returns how many registrations went out; 0 when the network has
+ * no push service.
+ */
+public func registerPushForConversation(grpcAddr: String, key: Data, token: Data, sandbox: Bool)async throws  -> UInt32  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_ghost_ios_fn_func_register_push_for_conversation(FfiConverterString.lower(grpcAddr),FfiConverterData.lower(key),FfiConverterData.lower(token),FfiConverterBool.lower(sandbox)
+                )
+            },
+            pollFunc: ffi_ghost_ios_rust_future_poll_u32,
+            completeFunc: ffi_ghost_ios_rust_future_complete_u32,
+            freeFunc: ffi_ghost_ios_rust_future_free_u32,
+            liftFunc: FfiConverterUInt32.lift,
+            errorHandler: FfiConverterTypeMeshError_lift
+        )
+}
+/**
  * Remember a conversation's key on this device.
  */
 public func saveConversationKey(conversationId: String, key: Data) -> Bool  {
@@ -4200,6 +4221,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_func_open_for_conversation() != 63990) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ghost_ios_checksum_func_register_push_for_conversation() != 63430) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ghost_ios_checksum_func_save_conversation_key() != 17029) {
