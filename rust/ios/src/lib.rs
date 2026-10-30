@@ -1404,6 +1404,63 @@ impl MeshNode {
         h.seals().set_hello_topics(campus::broadcasts());
     }
 
+    /// Fetch likes, invites and replies relays held for us while we were away;
+    /// they arrive through the usual callbacks. Returns how many came.
+    pub async fn fetch_inbox(&self) -> u32 {
+        let guard = self.handle.lock().await;
+        let Some(h) = guard.as_ref() else { return 0 };
+        let Some(grpc) = cached_grpc() else { return 0 };
+        let mut count = 0;
+        let mut ok = true;
+        for (topic, id, seal) in campus::inbox_to_fetch(&self.me) {
+            // Older days' topics aren't watched any more; register their key
+            // so the held messages open.
+            h.seals().insert(topic.clone(), seal);
+            match h.fetch_held(&topic, &id, &grpc).await {
+                Ok(n) => count += n as u32,
+                Err(e) => {
+                    tracing::warn!("inbox fetch failed: {e}");
+                    ok = false;
+                }
+            }
+        }
+        if ok {
+            campus::inbox_fetched(&self.me);
+        }
+        count
+    }
+
+    /// Ask relays to wake this phone when something is held in our inbox
+    /// (likes, invites), today and tomorrow; repeats are skipped. Returns how
+    /// many registrations went out.
+    pub async fn register_push_inbox(&self, token: Vec<u8>, sandbox: bool) -> u32 {
+        let store = store();
+        let (Some(grpc), Some(push_key)) = (
+            cached_grpc(),
+            libghost::directory::cached(store.as_ref())
+                .map(|d| d.push_public_key)
+                .filter(|k| k.len() == 32),
+        ) else {
+            return 0;
+        };
+        let service = if sandbox {
+            libghost::push::APNS_SANDBOX
+        } else {
+            libghost::push::APNS_PRODUCTION
+        };
+        let mut sent = 0;
+        for id in campus::inbox_push_ids(&self.me) {
+            match libghost::push::register(store.as_ref(), &grpc, &push_key, &id, service, &token)
+                .await
+            {
+                Ok(true) => sent += 1,
+                Ok(false) => {}
+                Err(e) => tracing::warn!("inbox push registration failed: {e}"),
+            }
+        }
+        sent
+    }
+
     /// Watch a sealed topic (a conversation mailbox) under `key`.
     pub async fn subscribe_sealed(&self, topic: String, key: Vec<u8>) -> Result<(), MeshError> {
         let key: [u8; 32] = key.try_into().map_err(|_| MeshError::ConnectionError {
@@ -1526,12 +1583,7 @@ impl MeshNode {
             if let Ok(sb) = postcard::to_allocvec(&state) {
                 store().set(&relationship_key(&to_peer_id), sb);
             }
-            h.publish_typed(
-                campus::topic(h.seals(), To::Inbox(&to_peer_id)).ok_or(MeshError::NotVerified)?,
-                bytes,
-                CONTENT_TYPE_LIKE,
-            )
-            .await;
+            send_to_inbox(h, &to_peer_id, bytes, CONTENT_TYPE_LIKE).await?;
             Ok(())
         } else {
             Err(MeshError::ConnectionFailed)
@@ -1552,12 +1604,7 @@ impl MeshNode {
             if let Ok(sb) = postcard::to_allocvec(&state) {
                 store().set(&relationship_key(&to_peer_id), sb);
             }
-            h.publish_typed(
-                campus::topic(h.seals(), To::Inbox(&to_peer_id)).ok_or(MeshError::NotVerified)?,
-                bytes,
-                CONTENT_TYPE_LIKE_BACK,
-            )
-            .await;
+            send_to_inbox(h, &to_peer_id, bytes, CONTENT_TYPE_LIKE_BACK).await?;
             Ok(())
         } else {
             Err(MeshError::ConnectionFailed)
@@ -1570,12 +1617,7 @@ impl MeshNode {
             if let Ok(sb) = postcard::to_allocvec(&state) {
                 store().set(&relationship_key(&to_peer_id), sb);
             }
-            h.publish_typed(
-                campus::topic(h.seals(), To::Inbox(&to_peer_id)).ok_or(MeshError::NotVerified)?,
-                vec![],
-                CONTENT_TYPE_LIKE_DECLINED,
-            )
-            .await;
+            send_to_inbox(h, &to_peer_id, vec![], CONTENT_TYPE_LIKE_DECLINED).await?;
             Ok(())
         } else {
             Err(MeshError::ConnectionFailed)
@@ -1600,12 +1642,7 @@ impl MeshNode {
             if let Ok(sb) = postcard::to_allocvec(&state) {
                 store().set(&relationship_key(&to_peer_id), sb);
             }
-            h.publish_typed(
-                campus::topic(h.seals(), To::Inbox(&to_peer_id)).ok_or(MeshError::NotVerified)?,
-                bytes,
-                CONTENT_TYPE_INVITE,
-            )
-            .await;
+            send_to_inbox(h, &to_peer_id, bytes, CONTENT_TYPE_INVITE).await?;
             Ok(())
         } else {
             Err(MeshError::ConnectionFailed)
@@ -1626,12 +1663,7 @@ impl MeshNode {
             if let Ok(sb) = postcard::to_allocvec(&state) {
                 store().set(&relationship_key(&to_peer_id), sb);
             }
-            h.publish_typed(
-                campus::topic(h.seals(), To::Inbox(&to_peer_id)).ok_or(MeshError::NotVerified)?,
-                bytes,
-                CONTENT_TYPE_INVITE_ACCEPT,
-            )
-            .await;
+            send_to_inbox(h, &to_peer_id, bytes, CONTENT_TYPE_INVITE_ACCEPT).await?;
             Ok(())
         } else {
             Err(MeshError::ConnectionFailed)
@@ -1645,12 +1677,7 @@ impl MeshNode {
                 store().set(&relationship_key(&to_peer_id), sb);
             }
             store().delete(&format!("fratrat/pending_invite/{}", to_peer_id));
-            h.publish_typed(
-                campus::topic(h.seals(), To::Inbox(&to_peer_id)).ok_or(MeshError::NotVerified)?,
-                vec![],
-                CONTENT_TYPE_INVITE_DECLINE,
-            )
-            .await;
+            send_to_inbox(h, &to_peer_id, vec![], CONTENT_TYPE_INVITE_DECLINE).await?;
             Ok(())
         } else {
             Err(MeshError::ConnectionFailed)
@@ -1696,6 +1723,37 @@ impl MeshNode {
             h.shutdown().await;
         }
     }
+}
+
+/// The relay gRPC URL to use for mailbox calls: the last network directory's.
+fn cached_grpc() -> Option<String> {
+    libghost::directory::cached(store().as_ref()).and_then(|d| d.grpc_urls().into_iter().next())
+}
+
+/// Send to an account's inbox: live, and also held on a relay so it arrives
+/// if they're offline (libghost verifies the signature when it's fetched,
+/// so nobody can hold a like "from" someone else). Without a known relay
+/// gRPC address it goes out live only.
+async fn send_to_inbox(
+    h: &ZRPHandle,
+    to: &str,
+    payload: Vec<u8>,
+    content_type: u16,
+) -> Result<(), MeshError> {
+    let (topic, mailbox_id) = campus::inbox_target(h.seals(), to).ok_or(MeshError::NotVerified)?;
+    match cached_grpc() {
+        Some(grpc) => {
+            if let Err(e) = h
+                .publish_held(topic, payload, content_type, &mailbox_id, &grpc)
+                .await
+            {
+                // The live copy is out unless the topic had no key.
+                tracing::warn!("inbox deposit failed: {e}");
+            }
+        }
+        None => h.publish_typed(topic, payload, content_type).await,
+    }
+    Ok(())
 }
 
 // MARK: - Relay discovery
@@ -1779,6 +1837,20 @@ pub async fn upload_debug_log(data: Vec<u8>, grpc_addr: String) -> Result<String
     crate::get_runtime()
         .spawn(async move {
             RelayClient::upload_debug_log(&grpc_addr, data, store().as_ref())
+                .await
+                .map_err(|e| MeshError::ConnectionError { msg: e.to_string() })
+        })
+        .await
+        .map_err(|e| MeshError::ConnectionError { msg: e.to_string() })?
+}
+
+/// Upload a user report: anonymous like a debug log, but filed apart for the
+/// operator (`zkrp-relay reports`). Returns the report id.
+#[uniffi::export]
+pub async fn upload_report(data: Vec<u8>, grpc_addr: String) -> Result<String, MeshError> {
+    crate::get_runtime()
+        .spawn(async move {
+            RelayClient::upload_report(&grpc_addr, data, store().as_ref())
                 .await
                 .map_err(|e| MeshError::ConnectionError { msg: e.to_string() })
         })

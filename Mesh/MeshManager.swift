@@ -145,6 +145,9 @@ final class MeshManager: ObservableObject {
     /// mailboxes rotate (refreshConversationSubscriptions).
     @MainActor
     func registerPushForAllConversations() async {
+        if let token = AppDelegate.pushToken, let node {
+            _ = await node.registerPushInbox(token: token, sandbox: AppDelegate.pushSandbox)
+        }
         for id in loadAllConversationKeyIds() {
             if let key = loadConversationKey(conversationId: id) { await registerPush(key: key) }
         }
@@ -291,7 +294,7 @@ final class MeshManager: ObservableObject {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         var payload = Data("==== FratRat report ====\n".utf8)
         payload.append(try encoder.encode(report))
-        return try await uploadDebugLog(data: payload, grpcAddr: grpcAddr)
+        return try await uploadReport(data: payload, grpcAddr: grpcAddr)
     }
 
     // MARK: - Deleting everything
@@ -960,10 +963,12 @@ final class MeshManager: ObservableObject {
         receive(payload, conversationId: conversationId, signer: senderPeerId)
     }
 
-    /// Fetch what relays held for every conversation while we were away.
+    /// Fetch what relays held while we were away: likes, invites and replies
+    /// (they arrive through the usual callbacks), then every conversation.
     @MainActor
     func fetchMissedMessages() async {
-        guard node != nil else { return }
+        guard let node else { return }
+        _ = await node.fetchInbox()
         for conversationId in loadAllConversationKeyIds() {
             guard let key = loadConversationKey(conversationId: conversationId) else { continue }
             do {

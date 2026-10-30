@@ -427,9 +427,19 @@ uint64_t uniffi_ghost_ios_fn_method_meshnode_blob_storage_bytes(uint64_t ptr
 uint64_t uniffi_ghost_ios_fn_method_meshnode_evict_old_blobs(uint64_t ptr, uint64_t max_age_secs
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_FETCH_INBOX
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_FETCH_INBOX
+uint64_t uniffi_ghost_ios_fn_method_meshnode_fetch_inbox(uint64_t ptr
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_REFRESH_CAMPUS
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_REFRESH_CAMPUS
 uint64_t uniffi_ghost_ios_fn_method_meshnode_refresh_campus(uint64_t ptr
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_REGISTER_PUSH_INBOX
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_REGISTER_PUSH_INBOX
+uint64_t uniffi_ghost_ios_fn_method_meshnode_register_push_inbox(uint64_t ptr, RustBuffer token, int8_t sandbox
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_METHOD_MESHNODE_REPLY_WITH_PROFILE
@@ -769,6 +779,11 @@ uint64_t uniffi_ghost_ios_fn_func_upload_debug_log(RustBuffer data, RustBuffer g
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_UPLOAD_PHOTO_BLOB
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_UPLOAD_PHOTO_BLOB
 uint64_t uniffi_ghost_ios_fn_func_upload_photo_blob(RustBuffer data, RustBuffer grpc_addr
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_UPLOAD_REPORT
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_UPLOAD_REPORT
+uint64_t uniffi_ghost_ios_fn_func_upload_report(RustBuffer data, RustBuffer grpc_addr
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_FN_FUNC_RANK_PROFILES
@@ -1343,6 +1358,12 @@ uint16_t uniffi_ghost_ios_checksum_func_upload_photo_blob(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_UPLOAD_REPORT
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_UPLOAD_REPORT
+uint16_t uniffi_ghost_ios_checksum_func_upload_report(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_RANK_PROFILES
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_FUNC_RANK_PROFILES
 uint16_t uniffi_ghost_ios_checksum_func_rank_profiles(void
@@ -1457,9 +1478,21 @@ uint16_t uniffi_ghost_ios_checksum_method_meshnode_evict_old_blobs(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_FETCH_INBOX
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_FETCH_INBOX
+uint16_t uniffi_ghost_ios_checksum_method_meshnode_fetch_inbox(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_REFRESH_CAMPUS
 #define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_REFRESH_CAMPUS
 uint16_t uniffi_ghost_ios_checksum_method_meshnode_refresh_campus(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_REGISTER_PUSH_INBOX
+#define UNIFFI_FFIDEF_UNIFFI_GHOST_IOS_CHECKSUM_METHOD_MESHNODE_REGISTER_PUSH_INBOX
+uint16_t uniffi_ghost_ios_checksum_method_meshnode_register_push_inbox(void
     
 );
 #endif
