@@ -62,11 +62,17 @@ final class Enrollment: ObservableObject {
     @Published var lastError: String?
 
     func requestLink(email: String) async throws {
+        let token: String?
         do {
             let authAddr = try await ZkrpNetwork.shared.authURL()
-            try await enrollRequestLink(authAddr: authAddr, email: email)
+            token = try await enrollRequestLink(authAddr: authAddr, email: email)
         } catch {
             throw EnrollmentError.server(Self.message(for: error))
+        }
+        // A service running without email proof (testing) hands the link's
+        // token straight back: redeem it as if the link had been tapped.
+        if let token, let url = URL(string: "fratrat://verify#\(token)") {
+            await redeem(from: url)
         }
     }
 

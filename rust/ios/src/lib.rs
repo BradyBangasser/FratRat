@@ -1861,7 +1861,8 @@ pub async fn upload_report(data: Vec<u8>, grpc_addr: String) -> Result<String, M
 // MARK: - Anonymous enrollment
 //
 // Swift drives the App Attest calls; Rust holds the credential state.
-//   1. enroll_request_link(auth_addr, email)
+//   1. enroll_request_link(auth_addr, email): Some(token) when the service
+//      runs without email proof (testing), and step 2 is skipped
 //   2. user taps the emailed link; the app gets the token (URL fragment)
 //   3. hash = enroll_begin()
 //   4. keyId = DCAppAttestService.generateKey()
@@ -1878,7 +1879,10 @@ fn enroll_err(e: impl std::fmt::Display) -> MeshError {
 /// Ask the auth service to email a magic link. The address goes only to the
 /// auth service and is not stored on the device.
 #[uniffi::export]
-pub async fn enroll_request_link(auth_addr: String, email: String) -> Result<(), MeshError> {
+pub async fn enroll_request_link(
+    auth_addr: String,
+    email: String,
+) -> Result<Option<String>, MeshError> {
     get_runtime()
         .spawn(async move {
             libghost::enroll::request_link(store().as_ref(), &auth_addr, &email)

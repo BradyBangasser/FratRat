@@ -20,7 +20,7 @@ libp2p = { version = "0.56", features = [
   "dns",
   "gossipsub",
 ] }
-libghost = { git = "https://github.com/BradyBangasser/zkrp", tag = "v0.5.0" }
+libghost = { git = "https://github.com/BradyBangasser/zkrp", tag = "v0.5.1" }
 uniffi = { version = "0.31.1", features = ["tokio"] }
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
@@ -39,4 +39,4 @@ hmac = "0.13.0"
 sha2 = "0.11"
 
 [dev-dependencies]
-zkcred = { git = "https://github.com/BradyBangasser/zkrp", tag = "v0.5.0" }
+zkcred = { git = "https://github.com/BradyBangasser/zkrp", tag = "v0.5.1" }
