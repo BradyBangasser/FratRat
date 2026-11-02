@@ -13,25 +13,9 @@
 //  address is sent to the auth service once and is never stored on device.
 //
 
+import Combine
 import DeviceCheck
 import Foundation
-
-enum EnrollmentError: LocalizedError {
-    case attestUnsupported
-    case missingToken
-    case server(String)
-
-    var errorDescription: String? {
-        switch self {
-        case .server(let message):
-            return message
-        case .attestUnsupported:
-            return "Verification needs a physical iPhone (App Attest isn't available here)."
-        case .missingToken:
-            return "That link is incomplete. Request a new one."
-        }
-    }
-}
 
 @MainActor
 final class Enrollment: ObservableObject {
@@ -59,23 +43,24 @@ final class Enrollment: ObservableObject {
         expiresAt = credentialExpiresAt().map { Date(timeIntervalSince1970: TimeInterval($0)) }
     }
     @Published private(set) var isRedeeming = false
-    @Published var lastError: String?
+    @Published var lastError: AuthError?
 
     func requestLink(email: String) async throws {
         do {
             let authAddr = try await ZkrpNetwork.shared.authURL()
             try await enrollRequestLink(authAddr: authAddr, email: email)
         } catch {
-            throw EnrollmentError.server(Self.message(for: error))
+            throw Self.authError(for: error)
         }
     }
 
     /// The generated MeshError description is a debug dump; surface the
     /// server's message instead.
-    private static func message(for error: Error) -> String {
-        if case let MeshError.EnrollError(msg) = error { return msg }
-        if case let MeshError.ConnectionError(msg) = error { return msg }
-        return error.localizedDescription
+    private static func authError(for error: Error) -> AuthError {
+        if let error = error as? AuthError { return error }
+        if case let MeshError.EnrollError(msg) = error { return .server(msg) }
+        if case MeshError.ConnectionError(_) = error { return .network }
+        return .server(error.localizedDescription)
     }
 
     /// True for URLs that look like our magic link, so other deep links pass
@@ -91,10 +76,10 @@ final class Enrollment: ObservableObject {
         do {
             // The token rides in the fragment so it never reaches a web server
             // even if the link opens in a browser.
-            guard let token = url.fragment, !token.isEmpty else { throw EnrollmentError.missingToken }
+            guard let token = url.fragment, !token.isEmpty else { throw AuthError.linkIncomplete }
 
             let service = DCAppAttestService.shared
-            guard service.isSupported else { throw EnrollmentError.attestUnsupported }
+            guard service.isSupported else { throw AuthError.attestationFailed }
 
             let clientDataHash = try enrollBegin()
             // A fresh key per enrollment: the server keeps no key id, so there
@@ -112,7 +97,7 @@ final class Enrollment: ObservableObject {
             refresh()
             lastError = nil
         } catch {
-            lastError = Self.message(for: error)
+            lastError = Self.authError(for: error)
         }
     }
 }

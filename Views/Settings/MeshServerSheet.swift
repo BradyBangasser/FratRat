@@ -2,26 +2,10 @@
 //  MeshServerSheet.swift
 //  FratRat
 //
-//  Created by Brady Bangasser on 7/13/26.
-//
-
-
-//
-//  MeshServerSheet.swift
-//  FratRat
-//
-//  Edit the mesh discovery server (the bootstrap gRPC endpoint) at runtime.
-//  Distinct from RelaySwitcherSheet: that switches which libp2p *relay* you're
-//  connected to; this changes the *discovery server* those relays are found
-//  through. Changing it repoints the whole app to a different mesh.
-//
-//  Present from SettingsView's Mesh section:
-//
-//      Button { showMeshServer = true } label: { ... }
-//        .sheet(isPresented: $showMeshServer) {
-//            MeshServerSheet(isPresented: $showMeshServer)
-//                .environmentObject(mesh)
-//        }
+//  Edit the discovery server (the relay asked first for the network
+//  directory) at runtime; see ZkrpConfig.discoveryOverride. Distinct from
+//  RelaySwitcherSheet: that switches which libp2p *relay* you're connected to;
+//  this changes where the relay list, auth service and CDN are learned from.
 //
 
 import SwiftUI
@@ -34,9 +18,12 @@ struct MeshServerSheet: View {
     @State private var applying = false
     @FocusState private var focused: Bool
 
-    private var normalizedPreview: String { MeshConfig.normalized(input) }
-    private var isValid: Bool { MeshConfig.looksValid(input) }
-    private var isUnchanged: Bool { normalizedPreview == mesh.config.grpcAddr }
+    @State private var current = ZkrpConfig.bootstrapRelays.first ?? ""
+    @State private var hasOverride = ZkrpConfig.discoveryOverride != nil
+
+    private var normalizedPreview: String { ZkrpConfig.grpcURL(fromUserInput: input) }
+    private var isValid: Bool { URL(string: normalizedPreview)?.host?.isEmpty == false }
+    private var isUnchanged: Bool { normalizedPreview == current }
 
     var body: some View {
         NavigationView {
@@ -52,7 +39,7 @@ struct MeshServerSheet: View {
                                 Text("CURRENT DISCOVERY SERVER")
                                     .font(.fratSemi(11)).foregroundColor(.fratGray)
                                 Spacer()
-                                if MeshConfig.hasOverride {
+                                if hasOverride {
                                     Text("custom")
                                         .font(.fratSemi(10)).foregroundColor(.fratPink)
                                         .padding(.horizontal, 8).padding(.vertical, 3)
@@ -64,7 +51,7 @@ struct MeshServerSheet: View {
                                         .background(Capsule().fill(Color.fratGray.opacity(0.12)))
                                 }
                             }
-                            Text(mesh.config.grpcAddr)
+                            Text(current)
                                 .font(.system(size: 14, design: .monospaced))
                                 .foregroundColor(.fratDark)
                                 .lineLimit(2)
@@ -82,7 +69,7 @@ struct MeshServerSheet: View {
                             HStack(spacing: 10) {
                                 Image(systemName: "server.rack")
                                     .font(.system(size: 14)).foregroundColor(.fratGray)
-                                TextField("relay.example.com:9001", text: $input)
+                                TextField("relay.example.com", text: $input)
                                     .font(.system(size: 15, design: .monospaced))
                                     .autocorrectionDisabled()
                                     .textInputAutocapitalization(.never)
@@ -113,20 +100,19 @@ struct MeshServerSheet: View {
                                         .font(.fratBody(12)).foregroundColor(.fratGray)
                                         .lineLimit(1).truncationMode(.middle)
                                 } else {
-                                    Label("Enter a host like relay.example.com or relay.example.com:9001",
+                                    Label("Enter a host like relay.example.com",
                                           systemImage: "exclamationmark.circle")
                                         .font(.fratBody(12)).foregroundColor(.red)
                                 }
                             } else {
-                                Text("Host, host:port, or full http(s):// URL. Port defaults to 9001.")
+                                Text("A host or host:port means https. Write http:// for a local plaintext relay.")
                                     .font(.fratBody(12)).foregroundColor(.fratGray)
                             }
 
                             // Quick fills
                             HStack(spacing: 8) {
                                 Text("Quick fill:").font(.fratSemi(11)).foregroundColor(.fratGray)
-                                quickFill("EU default", MeshConfig.defaultGrpcAddr)
-                                quickFill("localhost", "127.0.0.1:9001")
+                                quickFill("localhost", "http://127.0.0.1:9001")
                             }
                             .padding(.top, 2)
                         }
@@ -148,11 +134,11 @@ struct MeshServerSheet: View {
                         .disabled(!isValid || isUnchanged || applying)
 
                         // Reset
-                        if MeshConfig.hasOverride {
+                        if hasOverride {
                             Button {
                                 applying = true
                                 Task {
-                                    await mesh.resetMeshEndpoint()
+                                    await mesh.setDiscoveryServer(nil)
                                     applying = false
                                     isPresented = false
                                 }
@@ -180,7 +166,7 @@ struct MeshServerSheet: View {
                 }
             }
         }
-        .onAppear { input = mesh.config.grpcAddr }
+        .onAppear { input = current }
     }
 
     private func quickFill(_ label: String, _ value: String) -> some View {
@@ -195,7 +181,7 @@ struct MeshServerSheet: View {
         focused = false
         applying = true
         Task {
-            await mesh.updateMeshEndpoint(input)
+            await mesh.setDiscoveryServer(normalizedPreview)
             applying = false
             isPresented = false
         }

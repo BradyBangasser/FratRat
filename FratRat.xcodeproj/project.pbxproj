@@ -15,10 +15,7 @@
 		F546A96B2FDDB4A500736EE5 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546A96A2FDDB4A500736EE5 /* ProfileSetupView.swift */; };
 		F56786F22FF1AD2A003EA3E0 /* Haptic.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786F12FF1AD29003EA3E0 /* Haptic.swift */; };
 		F56786F42FFB1AC0003EA3E0 /* LogCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786F32FFB1AC0003EA3E0 /* LogCapture.swift */; };
-		F56786F63005A1E1003EA3E0 /* AuthController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786F53005A1E1003EA3E0 /* AuthController.swift */; };
-		F56786FD3005A559003EA3E0 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786FC3005A556003EA3E0 /* AuthService.swift */; };
-		F56786FF3005A56B003EA3E0 /* AuthConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786FE3005A56B003EA3E0 /* AuthConfig.swift */; };
-		F56787013005AC04003EA3E0 /* MeshConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56787003005AC04003EA3E0 /* MeshConfig.swift */; };
+		F56786FD3005A559003EA3E0 /* AuthError.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786FC3005A556003EA3E0 /* AuthError.swift */; };
 		F56787053005AC14003EA3E0 /* MeshServerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56787043005AC14003EA3E0 /* MeshServerSheet.swift */; };
 		F56787063005AD7E003EA3E0 /* AddressCompleter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786F93005A42F003EA3E0 /* AddressCompleter.swift */; };
 		F56787073005AD85003EA3E0 /* Auth.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56786F83005A404003EA3E0 /* Auth.swift */; };
@@ -58,12 +55,9 @@
 		F546A96A2FDDB4A500736EE5 /* ProfileSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSetupView.swift; sourceTree = "<group>"; };
 		F56786F12FF1AD29003EA3E0 /* Haptic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptic.swift; sourceTree = "<group>"; };
 		F56786F32FFB1AC0003EA3E0 /* LogCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogCapture.swift; sourceTree = "<group>"; };
-		F56786F53005A1E1003EA3E0 /* AuthController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthController.swift; sourceTree = "<group>"; };
 		F56786F83005A404003EA3E0 /* Auth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Auth.swift; sourceTree = "<group>"; };
 		F56786F93005A42F003EA3E0 /* AddressCompleter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressCompleter.swift; sourceTree = "<group>"; };
-		F56786FC3005A556003EA3E0 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
-		F56786FE3005A56B003EA3E0 /* AuthConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthConfig.swift; sourceTree = "<group>"; };
-		F56787003005AC04003EA3E0 /* MeshConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshConfig.swift; sourceTree = "<group>"; };
+		F56786FC3005A556003EA3E0 /* AuthError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthError.swift; sourceTree = "<group>"; };
 		F56787043005AC14003EA3E0 /* MeshServerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshServerSheet.swift; sourceTree = "<group>"; };
 		F5718AAE2FC4914C00651802 /* FratRat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FratRat.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5718AB12FC4914C00651802 /* FratRatApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FratRatApp.swift; sourceTree = "<group>"; };
@@ -193,10 +187,7 @@
 		F5718AD32FC4944E00651802 /* Mesh */ = {
 			isa = PBXGroup;
 			children = (
-				F56787003005AC04003EA3E0 /* MeshConfig.swift */,
-				F56786FE3005A56B003EA3E0 /* AuthConfig.swift */,
-				F56786FC3005A556003EA3E0 /* AuthService.swift */,
-				F56786F53005A1E1003EA3E0 /* AuthController.swift */,
+				F56786FC3005A556003EA3E0 /* AuthError.swift */,
 				F5718ACD2FC493FE00651802 /* MeshManager.swift */,
 				2C279648527612C89127452B /* Enrollment.swift */,
 				1F973DECC6719FB6D330C8F4 /* ZkrpConfig.swift */,
@@ -460,6 +451,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		F5718AD82FC49D5400651802 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -470,6 +462,10 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(SRCROOT)/libs/libghost_ios.a",
+				"$(SRCROOT)/Generated/ghost_ios/ghost_ios.swift",
+				"$(SRCROOT)/Generated/ghost_ios/ghost_iosFFI.h",
+				"$(SRCROOT)/Generated/ghost_ios/ghost_iosFFI.modulemap",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -490,16 +486,15 @@
 				F546A9662FDD879600736EE5 /* InviteView.swift in Sources */,
 				F56787053005AC14003EA3E0 /* MeshServerSheet.swift in Sources */,
 				F5718AF22FC4A81D00651802 /* ghost_ios.swift in Sources */,
-				F56786F63005A1E1003EA3E0 /* AuthController.swift in Sources */,
 				F5718B0C2FC7C45400651802 /* ProfileView.swift in Sources */,
 				F5718B012FC67DD500651802 /* MatchesView.swift in Sources */,
 				F5ABB0D12FEF37DF009DB4F0 /* InviteByNameView.swift in Sources */,
-				F56787013005AC04003EA3E0 /* MeshConfig.swift in Sources */,
 				F5718AD72FC4990F00651802 /* Color.swift in Sources */,
 				F5718ACE2FC4940400651802 /* MeshManager.swift in Sources */,
-				F56786FD3005A559003EA3E0 /* AuthService.swift in Sources */,
+				002E44F36B6BE7CE99CA962B /* Enrollment.swift in Sources */,
+				EC44F1F583A7D88F7A62D7A1 /* ZkrpConfig.swift in Sources */,
+				F56786FD3005A559003EA3E0 /* AuthError.swift in Sources */,
 				F546A9682FDD87AB00736EE5 /* JoinChatView.swift in Sources */,
-				F56786FF3005A56B003EA3E0 /* AuthConfig.swift in Sources */,
 				F5718B0F2FC7C48A00651802 /* SettingsView.swift in Sources */,
 				F56786F22FF1AD2A003EA3E0 /* Haptic.swift in Sources */,
 				F5718B092FC7C03E00651802 /* ChatView.swift in Sources */,

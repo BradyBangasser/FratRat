@@ -64,11 +64,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
 
 @main
 struct FratRatApp: App {
-    @StateObject private var mesh = MeshManager()   // resolves MeshConfig.default (override → env → default)
-    /// Drives onboarding auth (attest → email → mailbox check → credential).
-    /// Uses the stub AuthService until the FFI-backed LiveAuthService lands.
-    @StateObject private var auth = AuthController()
-
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @StateObject private var mesh = MeshManager()
+    @StateObject private var enrollment = Enrollment()
     @AppStorage("appearanceMode") private var appearanceRaw: String = AppearanceMode.system.rawValue
 
     @State private var isOnboarded = UserProfile.load().isComplete
@@ -114,7 +112,6 @@ struct FratRatApp: App {
                         isOnboarded = true
                     })
                     .environmentObject(mesh)
-                    .environmentObject(auth)
                 }
             }
             .environmentObject(enrollment)
@@ -127,11 +124,23 @@ struct FratRatApp: App {
                 Task { await enrollment.redeem(from: url) }
             }
             .preferredColorScheme(appearanceMode.colorScheme)
-            // The verification email links back here (universal link). Hand the
-            // token to the controller, which finishes the round-trip and flips
-            // the onboarding flow to "verified".
-            .onOpenURL { url in
-                Task { await auth.handleVerificationLink(url) }
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                enrollment.refresh()
+                Task { await mesh.fetchMissedMessages() }
+            }
+            // A renewal brings this epoch's campus keys: start using them.
+            .onChange(of: enrollment.expiresAt) { _, _ in
+                Task { await mesh.refreshConversationSubscriptions() }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .pushTokenChanged)) { _ in
+                Task { await mesh.registerPushForAllConversations() }
+            }
+            .onChange(of: mesh.dataDeleted) { _, deleted in
+                guard deleted else { return }
+                enrollment.refresh()
+                isOnboarded = false
+                mesh.dataDeleted = false
             }
         }
     }

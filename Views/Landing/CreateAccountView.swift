@@ -2,48 +2,21 @@
 //  CreateAccountView.swift
 //  FratRat
 //
-//  First onboarding step: Sign in with Apple + the 18+ gate. On success we run
-//  device attestation (App Attest, via the core) through AuthController, then
-//  hand off to .edu verification.
-//
-//  PRIVACY NOTES (for review):
-//  • Age gate is 18+ to match the product rule and the auth server ("students
-//    18+"). It previously read 17+ here and on the landing screen — corrected.
-//  • The Apple request asks for NO scopes ([]). The product model is "no
-//    accounts, identity invisible to us," so we use SIWA purely as an Apple-ID /
-//    anti-abuse ceremony and never pull the user's name/email from Apple. The
-//    profile name is collected later; the school email is the .edu, not Apple's.
-//    If product wants Apple's name to pre-fill the profile, restore
-//    `[.fullName]` — but never send it to any server.
-//  • The dev "skip" affordance is compiled out of Release (#if DEBUG).
-//
 
 import SwiftUI
-import AuthenticationServices
-import CryptoKit
 
+// MARK: - CreateAccountView
+// First step of onboarding — age attestation, then EduVerificationView.
+// There is deliberately no third-party sign-in: the .edu email check is the
+// only identity step, and the auth service keeps no record of it.
 struct CreateAccountView: View {
     @EnvironmentObject var mesh: MeshManager
-    @EnvironmentObject var auth: AuthController
     @Environment(\.dismiss) private var dismiss
 
     @State private var ageConfirmed = false
     @State private var navigateToEdu = false
-    /// Client-side nonce for the SIWA ceremony (replay protection). The real
-    /// flow should bind this to the App Attest challenge issued by the core.
-    @State private var currentNonce: String?
 
     var onOnboardingComplete: () -> Void = {}
-
-    private var isBusy: Bool {
-        if case .attesting = auth.phase { return true }
-        return false
-    }
-
-    private var currentError: AuthError? {
-        if case .failed(let e) = auth.phase { return e }
-        return nil
-    }
 
     var body: some View {
         ZStack {
@@ -87,7 +60,7 @@ struct CreateAccountView: View {
                         .font(.system(size: 28, weight: .black))
                         .foregroundColor(.fratDark)
                         .multilineTextAlignment(.center)
-                    Text("Sign in to get started. You'll verify your .edu email next.")
+                    Text("Next you'll verify your .edu email.\nIt's never stored or linked to you.")
                         .font(.fratBody(15))
                         .foregroundColor(.fratGray)
                         .multilineTextAlignment(.center)
@@ -100,7 +73,6 @@ struct CreateAccountView: View {
                 // ── 18+ gate ──────────────────────────────────────────────
                 Button {
                     withAnimation(.easeInOut(duration: 0.15)) { ageConfirmed.toggle() }
-                    auth.clearError()
                 } label: {
                     HStack(alignment: .top, spacing: 12) {
                         ZStack {
@@ -138,32 +110,10 @@ struct CreateAccountView: View {
                 .padding(.bottom, 16)
                 .accessibilityAddTraits(ageConfirmed ? [.isSelected] : [])
 
-                // ── Error ─────────────────────────────────────────────────
-                if let err = currentError {
-                    AuthErrorCard(error: err, onRetry: { auth.clearError() })
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 12)
+                // ── Continue ─────────────────────────────────────────────
+                PillButton(title: "Continue", isEnabled: ageConfirmed) {
+                    navigateToEdu = true
                 }
-
-                // ── Sign in with Apple ───────────────────────────────────
-                SignInWithAppleButton(
-                    .signIn,
-                    onRequest: configureRequest,
-                    onCompletion: handleAppleResult
-                )
-                .signInWithAppleButtonStyle(.black)
-                .frame(height: 54)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .disabled(!ageConfirmed || isBusy)
-                .opacity(ageConfirmed && !isBusy ? 1 : 0.4)
-                .overlay {
-                    if isBusy {
-                        RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.85))
-                        ProgressView().tint(.white)
-                    }
-                }
-                .disabled(!ageConfirmed)
-                .opacity(ageConfirmed ? 1 : 0.4)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 10)
 
@@ -175,26 +125,6 @@ struct CreateAccountView: View {
                         .padding(.bottom, 4)
                 }
 
-                #if DEBUG
-                // Debug-only bypass. Compiled out of Release so it can never ship.
-                HStack(spacing: 8) {
-                    AuthDevBadge(text: "debug")
-                    Button {
-                        auth.debugForceVerified()
-                        navigateToEdu = true
-                    } label: {
-                        Text("Skip sign-in")
-                            .font(.fratSemi(14))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.orange))
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 10)
-                #endif
-
                 // ── Legal ─────────────────────────────────────────────────
                 Text("By continuing, you agree to our Terms of Service and Privacy Policy.")
                     .font(.fratBody(12))
@@ -204,51 +134,15 @@ struct CreateAccountView: View {
                     .padding(.bottom, 36)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: currentError)
         .navigationDestination(isPresented: $navigateToEdu) {
             EduVerificationView(onOnboardingComplete: onOnboardingComplete)
                 .environmentObject(mesh)
-                .environmentObject(auth)
-        }
-        .onChange(of: auth.phase) { _, phase in
-            if case .attested = phase { navigateToEdu = true }
         }
     }
+}
 
-    // MARK: - SIWA plumbing
-
-    private func configureRequest(_ request: ASAuthorizationAppleIDRequest) {
-        let nonce = Self.randomNonce()
-        currentNonce = nonce
-        // No name/email scopes — see privacy note at the top of this file.
-        request.requestedScopes = []
-        request.nonce = Self.sha256(nonce)
-    }
-
-    private func handleAppleResult(_ result: Result<ASAuthorization, Error>) {
-        switch result {
-        case .success:
-            // Apple ceremony done. Now attest the device + age gate via the core.
-            Task { await auth.attestDevice(ageConfirmed: ageConfirmed) }
-
-        case .failure(let error):
-            let ns = error as NSError
-            // User tapping "Cancel" isn't an error — stay put, show nothing.
-            if ns.code == ASAuthorizationError.canceled.rawValue { return }
-            // Any other Apple failure gets an honest, specific message.
-            auth.reportFailure(.appleSignInFailed)
-        }
-    }
-
-    // MARK: - Nonce helpers (client-side SIWA ceremony only)
-
-    private static func randomNonce(length: Int = 32) -> String {
-        let chars = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
-        var rng = SystemRandomNumberGenerator()
-        return String((0..<length).map { _ in chars[Int(rng.next() % UInt64(chars.count))] })
-    }
-
-    private static func sha256(_ input: String) -> String {
-        SHA256.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
+#Preview {
+    NavigationStack {
+        CreateAccountView()
     }
 }

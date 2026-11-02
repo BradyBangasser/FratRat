@@ -22,15 +22,33 @@ enum ZkrpConfig {
             .flatMap { $0.isEmpty ? nil : $0 }
     }
 
-    /// Relay gRPC URLs to ask first. The scheme's GRPC_ADDR (a full URL, e.g.
-    /// http://127.0.0.1:9001 for a local relay) takes precedence.
-    static let bootstrapRelays: [String] = {
+    /// Relay gRPC URLs to ask first. A discovery server set in Settings wins,
+    /// then the scheme's GRPC_ADDR (a full URL, e.g. http://127.0.0.1:9001 for
+    /// a local relay), then the xcconfig list.
+    static var bootstrapRelays: [String] {
+        if let override = discoveryOverride { return [override] }
         if let override = env("GRPC_ADDR") { return [override] }
         return (plist("ZKRPBootstrapRelays") ?? "")
             .split(separator: ",")
             .map { grpcURL(fromUserInput: String($0)) }
             .filter { !$0.isEmpty }
-    }()
+    }
+
+    private static let discoveryOverrideKey = "fratrat.grpcAddr"
+
+    /// A relay to ask first instead of the bootstrap list, set from Settings so
+    /// an installed build can be repointed (the env var can't be set there).
+    static var discoveryOverride: String? {
+        get { UserDefaults.standard.string(forKey: discoveryOverrideKey).flatMap { $0.isEmpty ? nil : $0 } }
+        set {
+            let url = newValue.map(grpcURL(fromUserInput:)) ?? ""
+            if url.isEmpty {
+                UserDefaults.standard.removeObject(forKey: discoveryOverrideKey)
+            } else {
+                UserDefaults.standard.set(url, forKey: discoveryOverrideKey)
+            }
+        }
+    }
 
     /// The credential issuer's public key. Pinning it means the auth service
     /// can't hand individual users their own issuer key to tag them. nil
@@ -73,7 +91,7 @@ final class ZkrpNetwork {
     func authURL() async throws -> String {
         if info == nil { await refresh() }
         guard let url = info?.authUrl, !url.isEmpty else {
-            throw EnrollmentError.server("Can't reach FratRat right now. Check your connection and try again.")
+            throw AuthError.network
         }
         return url
     }
