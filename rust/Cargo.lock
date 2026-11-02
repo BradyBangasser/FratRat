@@ -2007,8 +2007,8 @@ checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
 
 [[package]]
 name = "libghost"
-version = "0.5.0"
-source = "git+https://github.com/BradyBangasser/zkrp?tag=v0.5.0#3010e782d2a2fe85c765b6c3c34908a14fda3baf"
+version = "0.5.1"
+source = "git+https://github.com/BradyBangasser/zkrp?tag=v0.5.1#631e3dbd1f8bdaef8846229021e07f78f9bd708f"
 dependencies = [
  "aes-gcm",
  "async-trait",
@@ -5401,8 +5401,8 @@ dependencies = [
 
 [[package]]
 name = "zkcred"
-version = "0.5.0"
-source = "git+https://github.com/BradyBangasser/zkrp?tag=v0.5.0#3010e782d2a2fe85c765b6c3c34908a14fda3baf"
+version = "0.5.1"
+source = "git+https://github.com/BradyBangasser/zkrp?tag=v0.5.1#631e3dbd1f8bdaef8846229021e07f78f9bd708f"
 dependencies = [
  "ark-bls12-381",
  "ark-ec",
